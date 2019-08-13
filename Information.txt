@@ -32,6 +32,6 @@
 	
 	-------------------------------------------------------------------------------
 	
-	Changelog - August 13, 2019 - 10:59 UTC:
+	Changelog:
 	
 	- AuctionHere released in alpha
