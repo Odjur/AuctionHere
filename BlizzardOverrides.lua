@@ -3,8 +3,68 @@ local _, addonTable = ...
 
 local math_ceil =  math.ceil
 
--- The original function is from Blizzard_AuctionUI.lua
-local function AuctionFrameBrowse_Update_Override()
+ -- ??? QueryAuctionItems
+ -- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
+addonTable.QueryAuctionItems = function(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, _, filterData)
+	QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, AuctionHere_ExactMatch:GetChecked(), filterData)
+end
+
+ -- Blizzard_AuctionUI.lua AuctionFrameBrowse_Reset
+addonTable.AuctionFrameBrowse_Reset = function(self)
+	BrowseName:SetText("")
+	BrowseMinLevel:SetText("")
+	BrowseMaxLevel:SetText("")
+	
+	UIDropDownMenu_SetSelectedValue(BrowseDropDown, -1)
+	
+	IsUsableCheckButton:SetChecked(false)
+	
+	if ShowOnPlayerCheckButton:GetChecked() then
+		ShowOnPlayerCheckButton:Click()
+	end
+	
+	AuctionHere_UnitPrice:SetChecked(false)
+	AuctionHere_ExactMatch:SetChecked(false)
+	
+	-- reset the filters
+	OPEN_FILTER_LIST = {}
+	
+	AuctionFrameBrowse.selectedCategoryIndex = nil
+	AuctionFrameBrowse.selectedSubCategoryIndex = nil
+	AuctionFrameBrowse.selectedSubSubCategoryIndex = nil
+	
+	-- BrowseLevelSort:SetText(AuctionFrame_GetDetailColumnString(AuctionFrameBrowse.selectedCategoryIndex, AuctionFrameBrowse.selectedSubCategoryIndex))
+	
+	AuctionFrameFilters_Update()
+	
+	self:Disable()
+end
+
+ -- Blizzard_AuctionUI.lua BrowseResetButton_OnUpdate
+addonTable.BrowseResetButton_OnUpdate = function(self, elapsed)
+	if 		(BrowseName:GetText() == "")
+		and (BrowseMinLevel:GetText() == "")
+		and (BrowseMaxLevel:GetText() == "")
+		
+		and (UIDropDownMenu_GetSelectedValue(BrowseDropDown) == -1)
+		
+		and (not IsUsableCheckButton:GetChecked())
+		and (not ShowOnPlayerCheckButton:GetChecked())
+		and (not AuctionHere_UnitPrice:GetChecked())
+		and (not AuctionHere_ExactMatch:GetChecked())
+		
+		and (not AuctionFrameBrowse.selectedCategoryIndex)
+		and (not AuctionFrameBrowse.selectedSubCategoryIndex)
+		and (not AuctionFrameBrowse.selectedSubSubCategoryIndex)
+	then
+		self:Disable()
+	else
+		self:Enable()
+	end
+end
+
+ -- Blizzard_AuctionUI.lua AuctionFrameBrowse_Update
+addonTable.AuctionFrameBrowse_Update = function()
 	if not AuctionFrame_DoesCategoryHaveFlag("WOW_TOKEN_FLAG", AuctionFrameBrowse.selectedCategoryIndex) then
 		local numBatchAuctions, totalAuctions = GetNumAuctionItems("list")
 		local button, buttonName, buttonHighlight, iconTexture, itemName, color, itemCount, moneyFrame, yourBidText, buyoutFrame, buyoutMoney
@@ -222,5 +282,3 @@ local function AuctionFrameBrowse_Update_Override()
 		FauxScrollFrame_Update(BrowseScrollFrame, numBatchAuctions, NUM_BROWSE_TO_DISPLAY, AUCTIONS_BUTTON_HEIGHT)
 	end
 end
-
-addonTable.AuctionFrameBrowse_Update_Override = AuctionFrameBrowse_Update_Override

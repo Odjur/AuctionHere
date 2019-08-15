@@ -1,4 +1,19 @@
 
+ --[[
+	TODO
+	
+	Unit Price
+	Extend drop down clickable area
+	Close button position
+	
+	2 extra listing per page
+	Create quantity column
+	Create % column
+	Bid/buyout price sorting
+	Expand scrollable area
+	Bag slots replacing level
+ --]]
+
 local addonName, addonTable = ...
 local eventFrame = CreateFrame("FRAME")
 local pointLast, relativePointLast, xLast, yLast
@@ -50,7 +65,7 @@ local function Record()
 		local debounce = true
 		
 		-- name, texture, count, quality, canUse, level, levelColHeader, minBid, minIncrement, buyoutPrice, bidAmount, highBidder, bidderFullName, owner, ownerFullName, saleStatus, itemId, hasAllInfo = GetAuctionItemInfo("type", index)
-		local _, _, stack, _, _, _, _, bid, _, buyout, offer, bidder, _, seller, _, _, ID, hasAllInfo = GetAuctionItemInfo("list", a)
+		local _, _, stack, _, _, _, _, bid, _, buyout, offer, _, _, seller, _, _, item, hasAllInfo = GetAuctionItemInfo("list", a)
 		
 		if seller and hasAllInfo then
 			-- _, _, Color, Ltype, Id, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, reforging, Name = string.find(
@@ -61,29 +76,27 @@ local function Record()
 				local duration = GetAuctionItemTimeLeft("list", a)
 				
 				if duration then
-					if not AuctionHere_data[ID] then
-						AuctionHere_data[ID] = {}
+					if not AuctionHere_data[item] then
+						AuctionHere_data[item] = {}
 					end
 					
-					if not AuctionHere_data[ID][link] then
-						AuctionHere_data[ID][link] = {
+					if not AuctionHere_data[item][link] then
+						AuctionHere_data[item][link] = {
 							stacks = {},
 							bids = {},
 							buyouts = {},
 							offers = {},
-							bidders = {},
 							sellers = {},
 							durations = {}
 						}
 					end
 					
-					table.insert(AuctionHere_data[ID][link].stacks, stack)
-					table.insert(AuctionHere_data[ID][link].bids, bid)
-					table.insert(AuctionHere_data[ID][link].buyouts, buyout)
-					table.insert(AuctionHere_data[ID][link].offers, offer)
-					table.insert(AuctionHere_data[ID][link].bidders, bidder)
-					table.insert(AuctionHere_data[ID][link].sellers, seller)
-					table.insert(AuctionHere_data[ID][link].durations, duration)
+					table.insert(AuctionHere_data[item][link].stacks, stack)
+					table.insert(AuctionHere_data[item][link].bids, bid)
+					table.insert(AuctionHere_data[item][link].buyouts, buyout)
+					table.insert(AuctionHere_data[item][link].offers, offer)
+					table.insert(AuctionHere_data[item][link].sellers, seller)
+					table.insert(AuctionHere_data[item][link].durations, duration)
 					
 					debounce = false
 				end
@@ -100,6 +113,7 @@ end
 
  -- Modify the auction house UI
 local function Setup()
+	QueryAuctionItems = addonTable.QueryAuctionItems
 	AuctionFrameBrowse_Update = addonTable.AuctionFrameBrowse_Update_Override
 	
 	-- AuctionFrame
@@ -145,10 +159,7 @@ local function Setup()
 	-- BrowseDropDown
 	local point, relativeRegion, relativePoint, x, y = BrowseDropDown:GetPoint()
 	BrowseDropDown:SetPoint(point, relativeRegion, relativePoint, x - 1, y)
-	
-	-- BrowseDropDownButton
-	BrowseDropDownButton:Click()
-	DropDownList1Button1:Click()
+	UIDropDownMenu_SetSelectedValue(BrowseDropDown, -1)
 	
 	-- IsUsableCheckButton
 	local point, relativeRegion, relativePoint, x, y = IsUsableCheckButton:GetPoint()
@@ -169,15 +180,14 @@ local function Setup()
 	-- AuctionHere_UnitPrice
 	local unitPrice = CreateFrame("CheckButton", "AuctionHere_UnitPrice", BrowseMinLevel, "UICheckButtonTemplate")
 	unitPrice:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 614, -37)
-	local width, height = IsUsableCheckButton:GetSize()
-	unitPrice:SetSize(width, height)
+	unitPrice:SetSize(24, 24)
 	
 	-- AuctionHere_UnitPriceText
 	local unitPriceText = unitPrice:CreateFontString("AuctionHere_UnitPriceText")
 	unitPriceText:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 563, -44)
 	unitPriceText:SetFont(BrowseIsUsableText:GetFont())
-	unitPriceText:SetText("Unit Price")
 	unitPriceText:SetShadowOffset(BrowseIsUsableText:GetShadowOffset())
+	unitPriceText:SetText("Unit Price")
 	
 	-- BrowseSearchButton
 	local point, relativeRegion, relativePoint, x, y = BrowseSearchButton:GetPoint()
@@ -186,42 +196,19 @@ local function Setup()
 	
 	-- AuctionHere_Reset
 	local reset = CreateFrame("Button", "AuctionHere_Reset", BrowseSearchButton:GetParent(), "UIPanelButtonTemplate")
-	local width, height = BrowseSearchButton:GetSize()
-	reset:SetSize(width, height)
 	reset:SetPoint(point, relativeRegion, relativePoint, x + 262, y)
+	reset:SetSize(80, 22)
 	reset:SetText("Reset")
-	local template = reset:GetScript("OnMouseUp")
 	reset:SetScript("OnMouseUp", function(self, button)
-		template(self, button)
+		UIPanelButton_OnMouseUp(self)
 		
 		if button == "LeftButton" and MouseIsOver(reset) then
-			BrowseName:SetText("")
-			BrowseMinLevel:SetText("")
-			BrowseMaxLevel:SetText("")
-			
-			BrowseDropDownButton:Click()
-			DropDownList1Button1:Click()
-			
-			IsUsableCheckButton:SetChecked(false)
-			
-			if ShowOnPlayerCheckButton:GetChecked() then
-				ShowOnPlayerCheckButton:Click()
-			end
-			
-			AuctionHere_UnitPrice:SetChecked(false)
-			AuctionHere_ExactMatch:SetChecked(false)
-			
-			if BrowseFilterScrollFrameScrollBar:IsVisible() then
-				local sliderMin = BrowseFilterScrollFrameScrollBar:GetMinMaxValues()
-				BrowseFilterScrollFrameScrollBar:SetValue(sliderMin)
-			end
-			
-			AuctionFilterButton1:Click()
-			
-			if AuctionFilterButton11:IsVisible() then
-				AuctionFilterButton1:Click()
-			end
+			addonTable.AuctionFrameBrowse_Reset(self)
 		end
+	end)
+	
+	reset:SetScript("OnUpdate", function(self, elapsed)
+		addonTable.BrowseResetButton_OnUpdate(self, elapsed)
 	end)
 	
 	-- BrowsePrevPageButton
@@ -245,14 +232,7 @@ local function Setup()
 	local exactMatch = CreateFrame("CheckButton", "AuctionHere_ExactMatch", BrowseTabText:GetParent(), "UICheckButtonTemplate")
 	local point, relativeRegion, relativePoint, x, y = BrowseTabText:GetPoint()
 	exactMatch:SetPoint(point, relativeRegion, relativePoint, x + 61, y + 7)
-	local width, height = IsUsableCheckButton:GetSize()
-	exactMatch:SetSize(width, height)
-	
-	local template = QueryAuctionItems
-	
-	QueryAuctionItems = function(a, b, c, d, e, f, g, h, i)
-		template(a, b, c, d, e, f, g, exactMatch:GetChecked(), i)
-	end
+	exactMatch:SetSize(24, 24)
 	
 	for a = 1, 8 do
 		local offset = "BrowseButton" .. a
@@ -317,6 +297,8 @@ eventFrame:SetScript("OnEvent", function(_, event, addon)
 				Record()
 			elseif sanitized == "clear" then
 				AuctionHere_data = nil
+				
+				print("AuctionHere | Auction data cleared")
 			else
 				print("AuctionHere commands:")
 				print("/ah getall  - performs a search of the entire auction house")
