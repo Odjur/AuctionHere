@@ -3,13 +3,20 @@ local _, addonTable = ...
 
 local math_ceil =  math.ceil
 
- -- ??? QueryAuctionItems
+--[[
+ -- Unkown source
  -- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
-addonTable.QueryAuctionItems = function(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, _, filterData)
+function QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, _, filterData)
 	QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, AuctionHere_ExactMatch:GetChecked(), filterData)
 end
+--]]
 
- -- Blizzard_AuctionUI.lua AuctionFrameBrowse_Reset
+ -- MoneyFrame.lua
+function MoneyFrame_SetMaxDisplayWidth(moneyFrame, width)
+	moneyFrame.maxDisplayWidth = nil
+end
+
+ -- Blizzard_AuctionUI.lua
 addonTable.AuctionFrameBrowse_Reset = function(self)
 	BrowseName:SetText("")
 	BrowseMinLevel:SetText("")
@@ -40,7 +47,7 @@ addonTable.AuctionFrameBrowse_Reset = function(self)
 	self:Disable()
 end
 
- -- Blizzard_AuctionUI.lua BrowseResetButton_OnUpdate
+ -- Blizzard_AuctionUI.lua
 addonTable.BrowseResetButton_OnUpdate = function(self, elapsed)
 	if 		(BrowseName:GetText() == "")
 		and (BrowseMinLevel:GetText() == "")
@@ -51,7 +58,7 @@ addonTable.BrowseResetButton_OnUpdate = function(self, elapsed)
 		and (not IsUsableCheckButton:GetChecked())
 		and (not ShowOnPlayerCheckButton:GetChecked())
 		and (not AuctionHere_UnitPrice:GetChecked())
-		and (not AuctionHere_ExactMatch:GetChecked())
+--		and (not AuctionHere_ExactMatch:GetChecked())
 		
 		and (not AuctionFrameBrowse.selectedCategoryIndex)
 		and (not AuctionFrameBrowse.selectedSubCategoryIndex)
@@ -63,7 +70,7 @@ addonTable.BrowseResetButton_OnUpdate = function(self, elapsed)
 	end
 end
 
- -- Blizzard_AuctionUI.lua AuctionFrameBrowse_Update
+ -- Blizzard_AuctionUI.lua
 addonTable.AuctionFrameBrowse_Update = function()
 	if not AuctionFrame_DoesCategoryHaveFlag("WOW_TOKEN_FLAG", AuctionFrameBrowse.selectedCategoryIndex) then
 		local numBatchAuctions, totalAuctions = GetNumAuctionItems("list")
@@ -86,11 +93,11 @@ addonTable.AuctionFrameBrowse_Update = function()
 			
 			BrowseSearchCountText:Hide()
 			
-			AuctionHere_PageText:Hide()
+		--	AuctionHere_PageText:Hide()
 		else
 			BrowseNoResultsText:Hide()
 			
-			AuctionHere_PageText:SetText(AuctionFrameBrowse.page .. " / " .. math_ceil(totalAuctions / NUM_AUCTION_ITEMS_PER_PAGE))
+		--	AuctionHere_PageText:SetText(AuctionFrameBrowse.page .. " / " .. math_ceil(totalAuctions / NUM_AUCTION_ITEMS_PER_PAGE))
 			
 			local itemsMin = AuctionFrameBrowse.page * NUM_AUCTION_ITEMS_PER_PAGE + 1
 			local itemsMax = itemsMin + numBatchAuctions - 1
@@ -102,7 +109,6 @@ addonTable.AuctionFrameBrowse_Update = function()
 			index = offset + i + (NUM_AUCTION_ITEMS_PER_PAGE * AuctionFrameBrowse.page)
 			button = _G["BrowseButton" .. i]
 			local shouldHide = index > (numBatchAuctions + (NUM_AUCTION_ITEMS_PER_PAGE * AuctionFrameBrowse.page))
-			
 			if not shouldHide then
 				name, texture, count, quality, canUse, level, levelColHeader, minBid, minIncrement, buyoutPrice, bidAmount, highBidder, bidderFullName, owner, ownerFullName, saleStatus, itemId, hasAllInfo =  GetAuctionItemInfo("list", offset + i)
 				
@@ -205,12 +211,12 @@ addonTable.AuctionFrameBrowse_Update = function()
 				buyoutFrame = _G[buttonName .. "BuyoutFrame"]
 				
 				if buyoutPrice > 0 then
-					moneyFrame:SetPoint("RIGHT", button, "RIGHT", 10, 10)
+					moneyFrame:SetPoint("RIGHT", button, "RIGHT", 10, 8)
 					buyoutMoney = _G[buyoutFrame:GetName() .. "Money"]
 					MoneyFrame_Update(buyoutMoney, buyoutPrice)
 					buyoutFrame:Show()
 				else
-					moneyFrame:SetPoint("RIGHT", button, "RIGHT", 10, 3)
+					moneyFrame:SetPoint("RIGHT", button, "RIGHT", 10, 0)
 					buyoutFrame:Hide()
 				end
 				
@@ -273,7 +279,7 @@ addonTable.AuctionFrameBrowse_Update = function()
 		-- If more than one page of auctions show the next and prev arrows when the scrollframe is scrolled all the way down
 		if totalAuctions > NUM_AUCTION_ITEMS_PER_PAGE then
 			BrowsePrevPageButton.isEnabled = (AuctionFrameBrowse.page ~= 0)
-			BrowseNextPageButton.isEnabled = (AuctionFrameBrowse.page ~= (ceil(totalAuctions / NUM_AUCTION_ITEMS_PER_PAGE) - 1))
+			BrowseNextPageButton.isEnabled = (AuctionFrameBrowse.page ~= (math_ceil(totalAuctions / NUM_AUCTION_ITEMS_PER_PAGE) - 1))
 		else
 			BrowsePrevPageButton.isEnabled = false
 			BrowseNextPageButton.isEnabled = false
