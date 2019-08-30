@@ -28,10 +28,14 @@
 		AuctionHere is a comprehensive auction house addon, developed exclusively
 	for World of Warcraft Classic.
 	
-	Website: https://github.com/Odjur/AuctionHere
+	-------------------------------------------------------------------------------
+	
+	Website:
+	
+		https://github.com/Odjur/AuctionHere
 	
 	-------------------------------------------------------------------------------
 	
 	Changelog:
 	
-	- AuctionHere released in alpha
+		- AuctionHere released in alpha

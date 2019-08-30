@@ -5,8 +5,10 @@
 ## Author: Odjur
 ## Version: 1.12.0.1
 ## DefaultState: enabled
-## SavedVariables: AuctionHere_data
+## SavedVariables: AuctionHere_settings, AuctionHere_scans
 
 AuctionHere.lua
-BlizzardOverrides.lua
-Localization.lua
+AH_UI.lua
+AH_Data.lua
+AH_Overrides.lua
+AH_Localization.lua
