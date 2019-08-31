@@ -2,25 +2,19 @@
  --[[
 	TODO
 	
-	--------------------------------------------------
+	Browse
 	
-	Quality of life:
+	* BrowseScrollFrame improvements
 	
-	* Expand clickable rarity filter area
-	* Expand scrollable page area
-	* Optimize reset button
-	* Fix background texture
-	* Fix bid price positioning / clearing
-	* Make tabs dynamically sized
+	-------------------------------------------------------------------------------
 	
-	--------------------------------------------------
+	Bids
+	* TODO
 	
-	Functionality:
+	-------------------------------------------------------------------------------
 	
-	* Bag slots replacing level
-	* Search resets page
-	* Make level range searchable
-	* Add stack size filter
+	Auctions
+	* TODO
  --]]
 
  --[[
@@ -61,11 +55,9 @@ addonTable.print = print_
 local print = print_
 
 local Setup
-local pointLast, relativePointLast, xLast, yLast
 
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
-eventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED")
 
 eventFrame:SetScript("OnEvent", function(_, event, addon)
 	if event == "ADDON_LOADED" and addon == addonName then
@@ -81,13 +73,13 @@ eventFrame:SetScript("OnEvent", function(_, event, addon)
 			AuctionHere_scans = {}
 		end
 		
-		local sanitized
-		
 		local string_lower = string.lower
 		local wipe = wipe
 		local AuctionHere_scans = AuctionHere_scans
 		local GetAll = addonTable.GetAll
 		local Scan = addonTable.Scan
+		
+		local sanitized
 		
 		SlashCmdList[addonName] = function(message)
 			sanitized = string_lower(message)
@@ -114,25 +106,13 @@ eventFrame:SetScript("OnEvent", function(_, event, addon)
 		if Setup then
 			Setup()
 			
-			local point, _, relativePoint, x, y = AuctionFrame:GetPoint()
-			pointLast = point
-			relativePointLast = relativePoint
-			xLast = x + 2
-			yLast = y + 10
-			
 			Setup = nil
 		end
 		
 		AuctionFrame:ClearAllPoints()
-		AuctionFrame:SetPoint(pointLast, UIParent, relativePointLast, xLast, yLast)
+		AuctionFrame:SetPoint(addonTable.point, UIParent, addonTable.relativePoint, addonTable.x, addonTable.y)
 		
 		BrowseNextPageButton:Show()
 		BrowsePrevPageButton:Show()
-	elseif event == "AUCTION_HOUSE_CLOSED" then
-		local point, _, relativePoint, x, y = AuctionFrame:GetPoint()
-		pointLast = point
-		relativePointLast = relativePoint
-		xLast = x
-		yLast = y
 	end
 end)

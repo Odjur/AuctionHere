@@ -214,10 +214,10 @@ local function ScanLink()
 	
 	for a = position, limit do
 		index = indices[a]
-		data = GetAuctionItemLink("list", index)
+		ID = GetAuctionItemLink("list", index)
 		
-		if data then
-			link[index] = string_match(data, "%l+:[%-?%d+:]+")
+		if ID then
+			link[index] = string_match(ID, "%l+:[%-?%d+:]+")
 		else
 			incomplete[#incomplete + 1] = index
 		end

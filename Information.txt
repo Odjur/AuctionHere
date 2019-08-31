@@ -38,4 +38,4 @@
 	
 	Changelog:
 	
-		- AuctionHere released in alpha
+		- Imported to World of Warcraft Classic

@@ -3,16 +3,6 @@ local _, addonTable = ...
 
 local math_ceil =  math.ceil
 
-local template = QueryAuctionItems
-
- -- Unkown source
- -- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
-local function QueryAuctionItems_(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, _, filterData)
-	template(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, AuctionHere_ExactMatch:GetChecked(), filterData)
-end
-
---QueryAuctionItems = QueryAuctionItems_
-
  -- MoneyFrame.lua
 local function MoneyFrame_SetMaxDisplayWidth_(moneyFrame, width)
 	moneyFrame.maxDisplayWidth = nil
@@ -36,15 +26,11 @@ local function AuctionFrameBrowse_Reset_(self)
 	
 	AuctionHere_ExactMatch:SetChecked(false)
 	
-	-- reset the filters
 	OPEN_FILTER_LIST = {}
-	
 	AuctionFrameBrowse.selectedCategoryIndex = nil
 	AuctionFrameBrowse.selectedSubCategoryIndex = nil
 	AuctionFrameBrowse.selectedSubSubCategoryIndex = nil
-	
-	-- BrowseLevelSort:SetText(AuctionFrame_GetDetailColumnString(AuctionFrameBrowse.selectedCategoryIndex, AuctionFrameBrowse.selectedSubCategoryIndex))
-	
+	BrowseLevelSort:SetText(AuctionFrame_GetDetailColumnString(AuctionFrameBrowse.selectedCategoryIndex, AuctionFrameBrowse.selectedSubCategoryIndex))
 	AuctionFrameFilters_Update()
 	
 	self:Disable()
@@ -62,7 +48,7 @@ local function BrowseResetButton_OnUpdate_(self, elapsed)
 		
 		and (not IsUsableCheckButton:GetChecked())
 		and (not ShowOnPlayerCheckButton:GetChecked())
---		and (not AuctionHere_ExactMatch:GetChecked())
+		and (not AuctionHere_ExactMatch:GetChecked())
 		
 		and (not AuctionFrameBrowse.selectedCategoryIndex)
 		and (not AuctionFrameBrowse.selectedSubCategoryIndex)
@@ -75,6 +61,92 @@ local function BrowseResetButton_OnUpdate_(self, elapsed)
 end
 
 addonTable.BrowseResetButton_OnUpdate = BrowseResetButton_OnUpdate_
+
+local prevPage
+
+ -- Blizzard_AuctionUI.lua
+local function AuctionFrameBrowse_Search_()
+	BrowseScrollFrameScrollBar:SetValue(0)
+	
+	local page = AuctionFrameBrowse.page
+	
+	if not page then
+		AuctionFrameBrowse.page = 0
+	else
+		if page == prevPage then
+			AuctionFrameBrowse.page = 0
+		end
+	end
+	
+	page = AuctionFrameBrowse.page
+	
+	local filter
+	local category = AuctionFrameBrowse.selectedCategoryIndex
+	local subCategory = AuctionFrameBrowse.selectedSubCategoryIndex
+	local subSubCategory = AuctionFrameBrowse.selectedSubSubCategoryIndex
+	
+	if category and subCategory and subSubCategory then
+		filter = AuctionCategories[category].subCategories[subCategory].subCategories[subSubCategory].filters
+	elseif category and subCategory then
+		filter = AuctionCategories[category].subCategories[subCategory].filters
+	elseif category then
+		filter = AuctionCategories[category].filters
+	end
+	
+	QueryAuctionItems(
+		BrowseName:GetText(),
+		BrowseMinLevel:GetNumber(),
+		BrowseMaxLevel:GetNumber(),
+		page,
+		IsUsableCheckButton:GetChecked(),
+		UIDropDownMenu_GetSelectedValue(BrowseDropDown),
+		false,
+		AuctionHere_ExactMatch:GetChecked(),
+		filter
+	)
+	
+	prevPage = page
+	AuctionFrameBrowse.isSearching = 1
+end
+
+addonTable.AuctionFrameBrowse_Search = AuctionFrameBrowse_Search_
+
+ -- Blizzard_AuctionUI.lua
+local function BrowseSearchButton_OnUpdate_(self, elapsed)
+	if CanSendAuctionQuery("list") then
+		self:Enable()
+		
+		if BrowsePrevPageButton.isEnabled then
+			BrowsePrevPageButton:Enable()
+		else
+			BrowsePrevPageButton:Disable()
+		end
+		
+		if BrowseNextPageButton.isEnabled then
+			BrowseNextPageButton:Enable()
+		else
+			BrowseNextPageButton:Disable()
+		end
+		
+		BrowseQualitySort:Enable()
+		BrowseLevelSort:Enable()
+		BrowseDurationSort:Enable()
+		BrowseHighBidderSort:Enable()
+		BrowseCurrentBidSort:Enable()
+		AuctionFrameBrowse_UpdateArrows()
+	else
+		self:Disable()
+		BrowsePrevPageButton:Disable()
+		BrowseNextPageButton:Disable()
+		BrowseQualitySort:Disable()
+		BrowseLevelSort:Disable()
+		BrowseDurationSort:Disable()
+		BrowseHighBidderSort:Disable()
+		BrowseCurrentBidSort:Disable()
+	end
+end
+
+addonTable.BrowseSearchButton_OnUpdate = BrowseSearchButton_OnUpdate_
 
  -- Blizzard_AuctionUI.lua
 local function AuctionFrameBrowse_Update_()
@@ -99,11 +171,12 @@ local function AuctionFrameBrowse_Update_()
 			
 			BrowseSearchCountText:Hide()
 			
-		--	AuctionHere_PageText:Hide()
+			AuctionHere_PageText:Hide()
 		else
 			BrowseNoResultsText:Hide()
 			
-		--	AuctionHere_PageText:SetText(AuctionFrameBrowse.page .. " / " .. math_ceil(totalAuctions / NUM_AUCTION_ITEMS_PER_PAGE))
+			AuctionHere_PageText:SetText(AuctionFrameBrowse.page + 1 .. " / " .. math_ceil(totalAuctions / NUM_AUCTION_ITEMS_PER_PAGE))
+			AuctionHere_PageText:Show()
 			
 			local itemsMin = AuctionFrameBrowse.page * NUM_AUCTION_ITEMS_PER_PAGE + 1
 			local itemsMax = itemsMin + numBatchAuctions - 1
