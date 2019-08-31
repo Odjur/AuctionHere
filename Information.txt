@@ -38,4 +38,4 @@
 	
 	Changelog:
 	
-		- Imported to World of Warcraft Classic
+		- Added AuctionHere tab

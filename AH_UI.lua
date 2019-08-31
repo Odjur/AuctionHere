@@ -21,9 +21,6 @@ local function Setup()
 	
 	local _, point, relativeTo, relativePoint, x, y
 	
-	AuctionFrameBrowse_Search = addonTable.AuctionFrameBrowse_Search
-	AuctionFrameBrowse_Update = addonTable.AuctionFrameBrowse_Update
-	
 	-- AuctionFrame
 	addonTable.point, _, addonTable.relativePoint, addonTable.x, addonTable.y = AuctionFrame:GetPoint()
 	addonTable.y = addonTable.y + 12
@@ -50,6 +47,9 @@ local function Setup()
 	-- Browse
 	-------------------------------------------------------------------------------
 	
+	AuctionFrameBrowse_Search = addonTable.AuctionFrameBrowse_Search
+	AuctionFrameBrowse_Update = addonTable.AuctionFrameBrowse_Update
+	
 	-- BrowseTitle
 	_, _, _, _, y = BrowseTitle:GetPoint()
 	BrowseTitle:SetPoint("TOP", AuctionFrame, "TOP", 0, y)
@@ -59,8 +59,6 @@ local function Setup()
 	BrowseLevelText:SetPoint(point, relativeTo, relativePoint, x + 5, y)
 	
 	-- BrowseMinLevel
-	point, relativeTo, relativePoint, x, y = BrowseMinLevel:GetPoint()
-	BrowseMinLevel:SetPoint(point, relativeTo, relativePoint, x, y)
 	BrowseMinLevel:SetScript("OnEnterPressed", function(self)
 		AuctionFrameBrowse_Search()
 		self:ClearFocus()
@@ -325,6 +323,37 @@ local function Setup()
 	-- AuctionsTitle
 	_, _, _, _, y = AuctionsTitle:GetPoint()
 	AuctionsTitle:SetPoint("TOP", AuctionFrame, "TOP", 0, y)
+	
+	-------------------------------------------------------------------------------
+	-- AuctionHere
+	-------------------------------------------------------------------------------
+	
+	AuctionFrame_OnLoad = addonTable.AuctionFrame_OnLoad
+	AuctionFrameTab_OnClick = addonTable.AuctionFrameTab_OnClick
+	
+	local tab = CreateFrame("Button", "AuctionFrameTab4", AuctionFrame, "AuctionTabTemplate")
+	tab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 235, -434)
+	tab:SetID(4)
+	tab:SetText("AuctionHere")
+	PanelTemplates_SetNumTabs(AuctionFrame, 4)
+	PanelTemplates_TabResize(tab, 0)
+	PanelTemplates_DeselectTab(tab)
+	
+	local container = CreateFrame("Frame", "AuctionHere_Container", tab)
+	container:Hide()
+	
+	local title = container:CreateFontString("AuctionHere_Title")
+	title:SetPoint("TOP", AuctionFrame, "TOP", 0, -18)
+	title:SetFont("Fonts\\FRIZQT__.TTF", 12)
+	title:SetShadowOffset(1, -1)
+	title:SetTextColor(1, 0.82, 0, 1)
+	title:SetText("AuctionHere")
+	
+	local notice = container:CreateFontString("AuctionHere_Title")
+	notice:SetPoint("CENTER", AuctionFrame, "CENTER", 0, 0)
+	notice:SetFont("Fonts\\FRIZQT__.TTF", 10)
+	notice:SetShadowOffset(1, -1)
+	notice:SetText("This tab is in development, so use it with caution.\n\nType /ah for commands.")
 end
 
 addonTable.Setup = Setup

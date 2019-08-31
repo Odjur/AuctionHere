@@ -3,14 +3,66 @@ local _, addonTable = ...
 
 local math_ceil =  math.ceil
 
- -- MoneyFrame.lua
+ -- MoneyFrame.lua 277
 local function MoneyFrame_SetMaxDisplayWidth_(moneyFrame, width)
 	moneyFrame.maxDisplayWidth = nil
 end
 
 MoneyFrame_SetMaxDisplayWidth = MoneyFrame_SetMaxDisplayWidth_
 
- -- Blizzard_AuctionUI.lua
+ -- Blizzard_AuctionUI.lua 211
+local function AuctionFrameTab_OnClick_(self, button, down, index)
+	local index = self:GetID()
+	PanelTemplates_SetTab(AuctionFrame, index)
+	AuctionFrameAuctions:Hide()
+	AuctionFrameBrowse:Hide()
+	AuctionFrameBid:Hide()
+	AuctionHere_Container:Hide()
+	PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+	
+	if index == 1 then
+		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-TopLeft")
+		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-Top")
+		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-TopRight")
+		AuctionFrameBotLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-BotLeft")
+		AuctionFrameBot:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Bot")
+		AuctionFrameBotRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-BotRight")
+		AuctionFrameBrowse:Show()
+		AuctionFrame.type = "list"
+		SetAuctionsTabShowing(false)
+	elseif index == 2 then
+		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-TopLeft")
+		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Top")
+		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-TopRight")
+		AuctionFrameBotLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-BotLeft")
+		AuctionFrameBot:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Bot")
+		AuctionFrameBotRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-BotRight")
+		AuctionFrameBid:Show()
+		AuctionFrame.type = "bidder"
+		SetAuctionsTabShowing(false)
+	elseif index == 3 then
+		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-TopLeft")
+		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Top")
+		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-TopRight")
+		AuctionFrameBotLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-BotLeft")
+		AuctionFrameBot:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Bot")
+		AuctionFrameBotRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-BotRight")
+		AuctionFrameAuctions:Show()
+		SetAuctionsTabShowing(true)
+	elseif index == 4 then
+		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-TopLeft")
+		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Top")
+		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-TopRight")
+		AuctionFrameBotLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-BotLeft")
+		AuctionFrameBot:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Bot")
+		AuctionFrameBotRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-BotRight")
+		AuctionHere_Container:Show()
+	end
+end
+
+addonTable.AuctionFrameTab_OnClick = AuctionFrameTab_OnClick_
+
+ -- Blizzard_AuctionUI.lua 324
 local function AuctionFrameBrowse_Reset_(self)
 	BrowseName:SetText("")
 	BrowseMinLevel:SetText("")
@@ -38,7 +90,7 @@ end
 
 addonTable.AuctionFrameBrowse_Reset = AuctionFrameBrowse_Reset_
 
- -- Blizzard_AuctionUI.lua
+ -- Blizzard_AuctionUI.lua 350
 local function BrowseResetButton_OnUpdate_(self, elapsed)
 	if 		(BrowseName:GetText() == "")
 		and (BrowseMinLevel:GetText() == "")
@@ -64,7 +116,7 @@ addonTable.BrowseResetButton_OnUpdate = BrowseResetButton_OnUpdate_
 
 local prevPage
 
- -- Blizzard_AuctionUI.lua
+ -- Blizzard_AuctionUI.lua 397
 local function AuctionFrameBrowse_Search_()
 	BrowseScrollFrameScrollBar:SetValue(0)
 	
@@ -111,7 +163,7 @@ end
 
 addonTable.AuctionFrameBrowse_Search = AuctionFrameBrowse_Search_
 
- -- Blizzard_AuctionUI.lua
+ -- Blizzard_AuctionUI.lua 455
 local function BrowseSearchButton_OnUpdate_(self, elapsed)
 	if CanSendAuctionQuery("list") then
 		self:Enable()
@@ -148,7 +200,7 @@ end
 
 addonTable.BrowseSearchButton_OnUpdate = BrowseSearchButton_OnUpdate_
 
- -- Blizzard_AuctionUI.lua
+ -- Blizzard_AuctionUI.lua 686
 local function AuctionFrameBrowse_Update_()
 	if not AuctionFrame_DoesCategoryHaveFlag("WOW_TOKEN_FLAG", AuctionFrameBrowse.selectedCategoryIndex) then
 		local numBatchAuctions, totalAuctions = GetNumAuctionItems("list")
