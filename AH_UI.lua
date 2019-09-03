@@ -308,6 +308,11 @@ local function Setup()
 	_, _, _, _, y = BidTitle:GetPoint()
 	BidTitle:SetPoint("TOP", AuctionFrame, "TOP", 0, y)
 	
+	-- BidQualitySort
+	point, relativeTo, relativePoint, x, y = BidQualitySort:GetPoint()
+	BidQualitySort:SetPoint(point, relativeTo, relativePoint, x + 2, y)
+	BidQualitySort:SetWidth(193)
+	
 	-- BidBidText
 	point, relativeTo, relativePoint, x, y = BidBidText:GetPoint()
 	BidBidText:SetPoint(point, relativeTo, relativePoint, x, y - 1)
@@ -330,14 +335,16 @@ local function Setup()
 	
 	AuctionFrame_OnLoad = addonTable.AuctionFrame_OnLoad
 	AuctionFrameTab_OnClick = addonTable.AuctionFrameTab_OnClick
+	GetAll = addonTable.GetAll
+	Clear = addonTable.Clear
 	
 	local tab = CreateFrame("Button", "AuctionFrameTab4", AuctionFrame, "AuctionTabTemplate")
 	tab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 235, -434)
 	tab:SetID(4)
 	tab:SetText("AuctionHere")
 	PanelTemplates_SetNumTabs(AuctionFrame, 4)
-	PanelTemplates_TabResize(tab, 0)
 	PanelTemplates_DeselectTab(tab)
+	PanelTemplates_TabResize(tab, 0)
 	
 	local container = CreateFrame("Frame", "AuctionHere_Container", tab)
 	container:Hide()
@@ -349,11 +356,25 @@ local function Setup()
 	title:SetTextColor(1, 0.82, 0, 1)
 	title:SetText("AuctionHere")
 	
-	local notice = container:CreateFontString("AuctionHere_Title")
+	local notice = container:CreateFontString("AuctionHere_Notice")
 	notice:SetPoint("CENTER", AuctionFrame, "CENTER", 0, 0)
 	notice:SetFont("Fonts\\FRIZQT__.TTF", 10)
 	notice:SetShadowOffset(1, -1)
-	notice:SetText("This tab is in development, so use it with caution.\n\nType /ah for commands.")
+	notice:SetText("This tab is in development, so use it with caution.")
+	
+	-- AuctionHere_GetAll
+	local getAll = CreateFrame("Button", "AuctionHere_GetAll", container, "UIPanelButtonTemplate")
+	getAll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 80, -41)
+	getAll:SetSize(80, 22)
+	getAll:SetText("GetAll")
+	getAll:SetScript("OnClick", GetAll)
+	
+	-- AuctionHere_Clear
+	local clear = CreateFrame("Button", "AuctionHere_Clear", container, "UIPanelButtonTemplate")
+	clear:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 180, -41)
+	clear:SetSize(80, 22)
+	clear:SetText("Clear")
+	clear:SetScript("OnClick", Clear)
 end
 
 addonTable.Setup = Setup
