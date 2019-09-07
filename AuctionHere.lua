@@ -19,11 +19,7 @@
 	-------------------------------------------------------------------------------
 	
 	AuctionHere tab
-	* ?
- --]]
-
- --[[
-	itemString format
+	* itemString formatting
 	
  x	itemID					Item ID that can be used for GetItemInfo calls.
 	enchantId				Permament enchants applied to an item. See list of EnchantIds.
@@ -46,35 +42,45 @@
 local addonName, addonTable = ...
 local eventFrame = CreateFrame("FRAME")
 
-local Setup
-
-eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
-
-eventFrame:SetScript("OnEvent", function(_, event, addon)
-	if event == "ADDON_LOADED" and addon == addonName then
+eventFrame:SetScript("OnEvent", function(_, _, addon)
+	if addon == addonName then
 		eventFrame:UnregisterEvent("ADDON_LOADED")
 		
-		Setup = addonTable.Setup
-		
-		if not AuctionHere_settings then
-			AuctionHere_settings = {}
+		if not AuctionHere_data then
+			AuctionHere_data = {
+				settings = {
+					prices = {
+						-- update, range, excluded, included, stat, name
+						{true, 14, {}, {}, 2, "14 day median"}
+					}
+				},
+				
+				scans = {},
+				prices = {},
+				snapshot = {}
+			}
 		end
 		
-		if not AuctionHere_scans then
-			AuctionHere_scans = {}
-		end
-	elseif event == "AUCTION_HOUSE_SHOW" then
-		if Setup then
-			Setup()
+		local Setup = addonTable.Setup
+		
+		collectgarbage()
+		
+		eventFrame:SetScript("OnEvent", function()
+			if Setup then
+				Setup()
+				
+				Setup = nil
+			end
 			
-			Setup = nil
-		end
+			AuctionFrame:ClearAllPoints()
+			AuctionFrame:SetPoint(addonTable.point, UIParent, addonTable.relativePoint, addonTable.x, addonTable.y)
+			
+			BrowseNextPageButton:Show()
+			BrowsePrevPageButton:Show()
+		end)
 		
-		AuctionFrame:ClearAllPoints()
-		AuctionFrame:SetPoint(addonTable.point, UIParent, addonTable.relativePoint, addonTable.x, addonTable.y)
-		
-		BrowseNextPageButton:Show()
-		BrowsePrevPageButton:Show()
+		eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
 	end
 end)
+
+eventFrame:RegisterEvent("ADDON_LOADED")

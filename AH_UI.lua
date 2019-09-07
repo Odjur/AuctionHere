@@ -360,7 +360,12 @@ local function Setup()
 	notice:SetPoint("CENTER", AuctionFrame, "CENTER", 0, 0)
 	notice:SetFont("Fonts\\FRIZQT__.TTF", 10)
 	notice:SetShadowOffset(1, -1)
-	notice:SetText("This tab is in development, so use it with caution.")
+	
+	local math_floor = math.floor
+	C_Timer.NewTicker(0.1, function()
+		UpdateAddOnMemoryUsage()
+		notice:SetText("This tab is in development, so use it with caution.\n\n" .. math_floor(GetFramerate()) .. " fps\n\nAuctionHere memory: " .. math_floor(GetAddOnMemoryUsage("AuctionHere")) .. " KB")
+	end)
 	
 	-- AuctionHere_GetAll
 	local getAll = CreateFrame("Button", "AuctionHere_GetAll", container, "UIPanelButtonTemplate")

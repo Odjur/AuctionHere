@@ -5,7 +5,7 @@
 ## Author: Odjur
 ## Version: 1.13.2.1
 ## DefaultState: enabled
-## SavedVariables: AuctionHere_settings, AuctionHere_scans
+## SavedVariables: AuctionHere_data
 
 AuctionHere.lua
 AH_UI.lua
