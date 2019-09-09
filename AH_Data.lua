@@ -327,6 +327,7 @@ do
 			
 			auction = table_concat(auction)
 			local AuctionHere_data = AuctionHere_data
+			AuctionHere_data.state.snapshot = stamp
 			scans = AuctionHere_data.scans
 			scans[stamp] = auction
 			AuctionHere_data.snapshot = data
@@ -480,7 +481,6 @@ do
 				ScanInfo()
 			else
 				if CanSendAuctionQuery() and GetNumAuctionItems("list") == total then
-					print("done")
 					Save()
 				else
 					C_Timer_After(0, ScanControl)
@@ -505,6 +505,9 @@ do
 		local function GetAll()
 			if select(2, CanSendAuctionQuery()) then
 				AuctionFrameBrowse:UnregisterEvent("AUCTION_ITEM_LIST_UPDATE")
+				
+				local AuctionHere_data = AuctionHere_data
+				AuctionHere_data.state.getAll = GetServerTime()
 				
 				-- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
 				QueryAuctionItems("", nil, nil, 0, false, 0, true, false, nil)

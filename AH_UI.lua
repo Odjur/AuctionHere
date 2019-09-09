@@ -6,17 +6,19 @@ local function Setup()
 	NUM_BROWSE_TO_DISPLAY = 10
 	AUCTIONS_BUTTON_HEIGHT = 30
 	
+	local C_Timer_NewTicker = C_Timer.NewTicker
+	local math_floor = math.floor
 	local math_min = math.min
 	local math_max = math.max
+	local select = select
 	local _G = _G
 	
 	local NUM_BROWSE_TO_DISPLAY = NUM_BROWSE_TO_DISPLAY
 	local AUCTIONS_BUTTON_HEIGHT = AUCTIONS_BUTTON_HEIGHT
 	local UIDropDownMenu_SetSelectedValue = UIDropDownMenu_SetSelectedValue
 	local MouseIsOver = MouseIsOver
-	local UpdateAddOnMemoryUsage = UpdateAddOnMemoryUsage
-	local GetFramerate = GetFramerate
-	local GetAddOnMemoryUsage = GetAddOnMemoryUsage
+	local GetServerTime = GetServerTime
+	local CanSendAuctionQuery = CanSendAuctionQuery
 	
 	local AuctionFrameBrowse_Reset = addonTable.AuctionFrameBrowse_Reset
 	local BrowseResetButton_OnUpdate = addonTable.BrowseResetButton_OnUpdate
@@ -369,20 +371,6 @@ local function Setup()
 	title:SetTextColor(1, 0.82, 0, 1)
 	title:SetText("AuctionHere")
 	
-	-- TESTING
-	local notice = container:CreateFontString("AuctionHere_Notice")
-	notice:SetPoint("TOP", AuctionFrame, "TOP", 0, -42)
-	notice:SetFont("Fonts\\FRIZQT__.TTF", 10)
-	notice:SetShadowOffset(1, -1)
-	
-	local C_Timer_NewTicker = C_Timer.NewTicker
-	local math_floor = math.floor
-	
-	C_Timer_NewTicker(0.1, function()
-		UpdateAddOnMemoryUsage()
-		notice:SetText("This tab is in development, so use it with caution.\n" .. math_floor(GetFramerate()) .. " fps\nAuctionHere memory: " .. math_floor(GetAddOnMemoryUsage("AuctionHere")) .. " KB")
-	end)
-	
 	-- AuctionHere_GetAll
 	local getAll = CreateFrame("Button", "AuctionHere_GetAll", container, "UIPanelButtonTemplate")
 	getAll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 80, -41)
@@ -401,7 +389,10 @@ local function Setup()
 		-- AuctionHere_ItemN
 		local itemN = CreateFrame("Button", "AuctionHere_Item" .. a, container)
 		itemN:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 188, -85 - 17 * a)
-		itemN:SetSize(614, 19)
+		itemN:SetSize(634, 19)
+		itemN:SetScript("OnMouseWheel", function(_, delta)
+			AuctionHere_Slider:SetValue(AuctionHere_Slider:GetValue() - delta * 9)
+		end)
 		
 		-- AuctionHere_ItemNTexture
 		local itemNTexture = itemN:CreateTexture("AuctionHere_Item" .. a .. "Texture", "BACKGROUND")
@@ -455,48 +446,17 @@ local function Setup()
 	slider:SetSize(18, 273)
 	slider:SetValueStep(1)
 	slider:SetObeyStepOnDrag(true)
+	slider:SetFrameStrata("HIGH")
 	
-	-- TESTING
-	local math_ceil = math.ceil
-	local table_sort = table.sort
-	local snapshot = AuctionHere_data.snapshot
-	local prices = AuctionHere_data.prices["14 day median"]
-	
-	table_sort(snapshot, function(a, b)
-		return ((a[3] / a[1]) / (prices[a[6]][a[7]] or 1)) < ((b[3] / b[1]) / (prices[b[6]][b[7]] or 1))
+	-- AuctionHere_SliderScrollUpButton
+	AuctionHere_SliderScrollUpButton:SetScript("OnClick", function()
+		slider:SetValue(slider:GetValue() - 9)
 	end)
 	
-	slider:SetScript("OnValueChanged", function(_, value)
-		local position = math_min(#snapshot, 18)
-		
-		for a = 1, position do
-			local index = a + value
-			local auction = snapshot[index]
-			local count = auction[1]
-			local buyout = auction[3]
-			local ID = auction[6]
-			local _, link = GetItemInfo(ID)
-			local percent = math_ceil(((buyout / count) / (prices[ID][auction[7]] or 1)) * 100)
-			
-			if percent > 999 then
-				percent = 999
-			end
-			
-			_G["AuctionHere_Item" .. a .. "Name"]:SetText(link or "")
-			_G["AuctionHere_Item" .. a .. "Count"]:SetText(count)
-			_G["AuctionHere_Item" .. a .. "Duration"]:SetText("N/A")
-			_G["AuctionHere_Item" .. a .. "Bid"]:SetText(math_ceil((auction[4] or auction[2]) * 1.05))
-			_G["AuctionHere_Item" .. a .. "Buyout"]:SetText(buyout)
-			_G["AuctionHere_Item" .. a .. "Percent"]:SetText(percent)
-		end
-		
-		for a = position + 1, 18 do
-			_G["AuctionHere_Item" .. a]:Hide()
-		end
+	-- AuctionHere_SliderScrollDownButton
+	AuctionHere_SliderScrollDownButton:SetScript("OnClick", function()
+		slider:SetValue(slider:GetValue() + 9)
 	end)
-	
-	slider:SetMinMaxValues(0, math_max(0, #snapshot - 18))
-	slider:SetValue(0)
 	
 	-- AuctionHere_BuyTab
 	local buyTab = CreateFrame("Button", "AuctionHere_BuyTab", container, "AuctionClassButtonTemplate")
@@ -570,6 +530,36 @@ local function Setup()
 	-- AuctionHere_Buy
 	local buy = CreateFrame("Frame", "AuctionHere_Buy", container)
 	
+	local nameSort = CreateFrame("Button", "AuctionHere_NameSort", buy, "AuctionSortButtonTemplate")
+	nameSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 184, -82)
+	nameSort:SetSize(320, 19)
+	nameSort:SetText("Name")
+	
+	local countSort = CreateFrame("Button", "AuctionHere_CountSort", buy, "AuctionSortButtonTemplate")
+	countSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 502, -82)
+	countSort:SetSize(45, 19)
+	countSort:SetText("Count")
+	
+	local durationSort = CreateFrame("Button", "AuctionHere_DurationSort", buy, "AuctionSortButtonTemplate")
+	durationSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 545, -82)
+	durationSort:SetSize(68, 19)
+	durationSort:SetText("Duration")
+	
+	local bidSort = CreateFrame("Button", "AuctionHere_BidSort", buy, "AuctionSortButtonTemplate")
+	bidSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 611, -82)
+	bidSort:SetSize(85, 19)
+	bidSort:SetText("Bid")
+	
+	local buyoutSort = CreateFrame("Button", "AuctionHere_BuyoutSort", buy, "AuctionSortButtonTemplate")
+	buyoutSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 694, -82)
+	buyoutSort:SetSize(85, 19)
+	buyoutSort:SetText("Buyout")
+	
+	local percentSort = CreateFrame("Button", "AuctionHere_PercentSort", buy, "AuctionSortButtonTemplate")
+	percentSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 777, -82)
+	percentSort:SetSize(29, 19)
+	percentSort:SetText("%")
+	
 	-------------------------------------------------------------------------------
 	-- AuctionHere Sell
 	-------------------------------------------------------------------------------
@@ -593,6 +583,103 @@ local function Setup()
 	-- AuctionHere_Prices
 	local prices = CreateFrame("Frame", "AuctionHere_Prices", container)
 	prices:Hide()
+	
+	-------------------------------------------------------------------------------
+	-- Continuous Updates
+	-------------------------------------------------------------------------------
+	
+	local data
+	local state_getAll
+	local delta
+	local remainder
+	
+	-- Continous updates
+	C_Timer_NewTicker(0.1, function()
+		data = AuctionHere_data
+		state_getAll = AuctionHere_data.state.getAll
+		
+		if state_getAll then
+			delta = GetServerTime() - state_getAll
+			
+			if delta < 901 then
+				getAll:Disable()
+				delta = 900 - delta
+				remainder = delta % 60
+				
+				if remainder < 10 then
+					remainder = "0" .. remainder
+				end
+				
+				getAll:SetText(math_floor(delta / 60) .. ":" .. remainder)
+			else
+				getAll:SetText("GetAll")
+				
+				if select(2, CanSendAuctionQuery()) then
+					data.state.getAll = nil
+					getAll:Enable()
+				end
+			end
+		end
+	end)
+	
+	-------------------------------------------------------------------------------
+	-- Testing
+	-------------------------------------------------------------------------------
+	
+	local notice = container:CreateFontString("AuctionHere_Notice")
+	notice:SetPoint("TOP", AuctionFrame, "TOP", 0, -42)
+	notice:SetFont("Fonts\\FRIZQT__.TTF", 10)
+	notice:SetShadowOffset(1, -1)
+	
+	local UpdateAddOnMemoryUsage = UpdateAddOnMemoryUsage
+	local GetFramerate = GetFramerate
+	local GetAddOnMemoryUsage = GetAddOnMemoryUsage
+	
+	C_Timer_NewTicker(0.1, function()
+		UpdateAddOnMemoryUsage()
+		notice:SetText("This tab is in development, so use it with caution.\n" .. math_floor(GetFramerate()) .. " fps\nAuctionHere memory: " .. math_floor(GetAddOnMemoryUsage("AuctionHere")) .. " KB")
+	end)
+	
+	local math_ceil = math.ceil
+	local table_sort = table.sort
+	local snapshot = AuctionHere_data.snapshot
+	local prices = AuctionHere_data.prices["14 day median"]
+	
+	table_sort(snapshot, function(a, b)
+		return ((a[3] / a[1]) / (prices[a[6]][a[7]] or 1)) < ((b[3] / b[1]) / (prices[b[6]][b[7]] or 1))
+	end)
+	
+	slider:SetScript("OnValueChanged", function(_, value)
+		local position = math_min(#snapshot, 18)
+		
+		for a = 1, position do
+			local index = a + value
+			local auction = snapshot[index]
+			local count = auction[1]
+			local buyout = auction[3]
+			local ID = auction[6]
+			local _, link = GetItemInfo(ID)
+			local percent = math_ceil(((buyout / count) / (prices[ID][auction[7]] or 1)) * 100)
+			
+			if percent > 999 then
+				percent = 999
+			end
+			
+			_G["AuctionHere_Item" .. a .. "Name"]:SetText(link or "")
+			_G["AuctionHere_Item" .. a .. "Count"]:SetText(count)
+			_G["AuctionHere_Item" .. a .. "Duration"]:SetText("N/A")
+			_G["AuctionHere_Item" .. a .. "Bid"]:SetText(math_ceil(math_max(auction[2], auction[4]) * 1.05))
+			_G["AuctionHere_Item" .. a .. "Buyout"]:SetText(buyout)
+			_G["AuctionHere_Item" .. a .. "Percent"]:SetText(percent)
+		end
+		
+		for a = position + 1, 18 do
+			_G["AuctionHere_Item" .. a]:Hide()
+		end
+	end)
+	
+	slider:SetMinMaxValues(0, math_max(0, #snapshot - 18))
+	slider:SetValue(0)
 end
 
 addonTable.Setup = Setup
