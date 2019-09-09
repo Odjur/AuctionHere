@@ -7,10 +7,12 @@ local math_ceil = math.ceil
 local math_min = math.min
 local string_match = string.match
 local string_gmatch = string.gmatch
+local string_gsub = string.gsub
 local table_sort = table.sort
 local table_concat = table.concat
 local pairs = pairs
 local select = select
+local tonumber = tonumber
 local collectgarbage = collectgarbage
 
 local wipe = wipe
@@ -54,6 +56,7 @@ do
 		local range
 		local excluded
 		local included
+		local ID
 		local link
 		local index
 		local position
@@ -74,6 +77,7 @@ do
 				values = settings_prices[a]
 				
 				if values[1] then
+					-- itemLinks only for now
 					local buyouts = {}
 					range = stamp - values[2] * 86400
 					excluded = values[3]
@@ -81,31 +85,40 @@ do
 					
 					for b, c in pairs(scans) do
 						if (b > range and not excluded[b]) or included[b] then
-							-- itemLinks only for now
-							for d in string_gmatch(c, "%@[^%!%@]+") do
-								link = string_match(d, "%l+:[%-%d:]+")
+							for d in string_gmatch(c, "%![^%!]+") do
+								ID = tonumber(string_match(d, "%d+"))
 								
-								if not buyouts[link] then
-									buyouts[link] = {1}
+								if not buyouts[ID] then
+									buyouts[ID] = {}
 								end
 								
-								link = buyouts[link]
-								index = link[1]
-								position = index
+								ID = buyouts[ID]
 								
-								for e in string_gmatch(string_match(d, "%#[^%$]+"), "%d+") do
-									index = index + 1
-									link[index] = e
+								for e in string_gmatch(d, "%@[^%@]+") do
+									link = string_match(e, "%d*:%d*")
+									
+									if not ID[link] then
+										ID[link] = {1}
+									end
+									
+									link = ID[link]
+									index = link[1]
+									position = index
+									
+									for f in string_gmatch(string_match(e, "%#[^%$]+"), "%d+") do
+										index = index + 1
+										link[index] = f
+									end
+									
+									index = position
+									
+									for f in string_gmatch(string_match(e, "%%[^%^]+"), "%d+") do
+										index = index + 1
+										link[index] = f / link[index]
+									end
+									
+									link[1] = index
 								end
-								
-								index = position
-								
-								for e in string_gmatch(string_match(d, "%%[^%^]+"), "%d+") do
-									index = index + 1
-									link[index] = e / link[index]
-								end
-								
-								link[1] = index
 							end
 						end
 					end
@@ -113,102 +126,113 @@ do
 					range = values[5]
 					
 					if range == 1 then
-						-- mean
+						-- median
 						for b, c in pairs(buyouts) do
-							excluded = 0
-							included = 0
-							
-							for d = 2, c[1] do
-								link = c[d]
+							for d, e in pairs(c) do
+								excluded = e[1]
+								e[1] = e[excluded]
+								e[excluded] = nil
+								excluded = excluded - 1
 								
-								if link > 0 then
-									excluded = excluded + link
-									included = included + 1
+								table_sort(e)
+								
+								included = 0
+								
+								for f = 1, excluded do
+									if e[f] > 0 then
+										included = f
+										
+										break
+									end
 								end
-							end
-							
-							if included > 0 then
-								buyouts[b] = math_ceil(excluded / included)
-							else
-								buyouts[b] = 0
+								
+								if included > 0 then
+									range = (excluded + included) / 2
+									
+									if (excluded - included) % 2 > 0 then
+										range = math_floor(range)
+										c[d] = math_ceil((e[range] + e[range + 1]) / 2)
+									else
+										c[d] = math_ceil(e[range])
+									end
+								else
+									c[d] = nil
+								end
 							end
 						end
 					elseif range == 2 then
-						-- median
+						-- mean
 						for b, c in pairs(buyouts) do
-							excluded = c[1]
-							c[1] = 0
-							
-							table_sort(c)
-							
-							included = 0
-							
-							for d = 2, excluded do
-								if c[d] > 0 then
-									included = d
+							for d, e in pairs(c) do
+								excluded = 0
+								included = 0
+								
+								for f = 2, e[1] do
+									range = e[f]
 									
-									break
+									if range > 0 then
+										excluded = excluded + range
+										included = included + 1
+									end
 								end
-							end
-							
-							if included > 0 then
-								link = (excluded + included) / 2
 								
-								if (excluded - included) % 2 > 0 then
-									link = math_floor(link)
-									buyouts[b] = math_ceil((c[link] + c[link + 1]) / 2)
+								if included > 0 then
+									c[d] = math_ceil(excluded / included)
 								else
-									buyouts[b] = math_ceil(c[link])
+									c[d] = nil
 								end
-							else
-								buyouts[b] = 0
 							end
 						end
-					end
-					
-					--[[
-					-- work in progress
-					
 					elseif stat == 3 then
-						-- mode (smallest)
-						for a = 1, N_buyouts do
-							buyouts[a] = buyouts[a] / stacks[a]
-						end
-						
-						table_sort(buyouts)
-						
-						N_stacks = N_buyouts + 1
-						
-						for a = 1, N_buyouts do
-							if buyouts[a] > 0 then
-								N_stacks = a
+						-- mode (lowest)
+						for b, c in pairs(buyouts) do
+							for d, e in pairs(c) do
+								excluded = e[1]
+								e[1] = e[excluded]
+								e[excluded] = nil
+								excluded = excluded - 1
 								
-								break
-							end
-						end
-						
-						price = 0
-						stacks = 0
-						position = 0
-						limit = 0
-						
-						for a = N_stacks, N_buyouts do
-							index = buyouts[a]
-							
-							if index > position then
-								if limit > stacks then
-									price = position
-									stacks = limit
+								table_sort(e)
+								
+								range = nil
+								
+								for f = 1, excluded do
+									link = e[f]
+									
+									if link > 0 then
+										ID = 0
+										index = 1
+										
+										for g = f + 1, excluded do
+											position = e[g]
+											
+											if position > link then
+												if index > ID then
+													range = link
+													ID = index
+												end
+												
+												link = position
+												index = 1
+											else
+												index = index + 1
+											end
+										end
+										
+										if index > ID then
+											range = link
+										end
+										
+										range = math_ceil(range)
+										
+										break
+									end
 								end
 								
-								position = index
-								limit = 1
-							else
-								limit = limit + 1
+								c[d] = range
 							end
 						end
 					end
-					--]]
 					
 					prices[values[6]] = buyouts
 				end
@@ -320,7 +344,7 @@ do
 		local iterations
 		local index
 		local indices
-		local _, stack, bid, buyout, offer, seller, ID
+		local _, count, bid, buyout, offer, seller, ID
 		local N_incomplete
 		local incomplete
 		local segment
@@ -339,7 +363,8 @@ do
 				ID = GetAuctionItemLink("list", index)
 				
 				if ID then
-					data[index][7] = string_match(ID, "%l+:[%-%d:]+")
+					-- item:itemId:enchantId:gemId1:gemId2:gemId3:gemId4:suffixId:uniqueId:linkLevel:specializationID:upgradeId:instanceDifficultyId:numBonusIds:bonusId1:bonusId2:upgradeValue
+					data[index][7] = string_gsub(ID, ".+m:%d-:(%d-):%d-:%d-:%d-:%d-(:%d*).+", "%1%2")
 				else
 					N_incomplete = N_incomplete + 1
 					incomplete[N_incomplete] = index
@@ -385,22 +410,14 @@ do
 			for a = position, limit do
 				index = indices[a]
 				-- name, texture, count, quality, canUse, level, levelColHeader, minBid, minIncrement, buyoutPrice, bidAmount, highBidder, highBidderFullName, owner, ownerFullName, saleStatus, itemId, hasAllInfo
-				_, _, stack, _, _, _, _, bid, _, buyout, offer, _, _, seller, _, _, ID = GetAuctionItemInfo("list", index)
+				_, _, count, _, _, _, _, bid, _, buyout, offer, _, _, seller, _, _, ID = GetAuctionItemInfo("list", index)
 				
-				if seller and stack and bid and buyout and offer and ID then
-					index = data[index]
-					index[1] = stack
-					
+				if seller and count and bid and buyout and offer and ID then
 					if bid == buyout then
-						index[2] = 0
-					else
-						index[2] = bid
+						bid = 0
 					end
 					
-					index[3] = buyout
-					index[4] = offer
-					index[5] = seller
-					index[6] = ID
+					data[index] = {count, bid, buyout, offer, seller, ID}
 				else
 					N_incomplete = N_incomplete + 1
 					incomplete[N_incomplete] = index
@@ -454,10 +471,6 @@ do
 					indices[a] = total + a
 				end
 				
-				for a = total + 1, batch do
-					data[a] = {}
-				end
-				
 				total = batch
 				batch = segment
 				position = 1
@@ -467,6 +480,7 @@ do
 				ScanInfo()
 			else
 				if CanSendAuctionQuery() and GetNumAuctionItems("list") == total then
+					print("done")
 					Save()
 				else
 					C_Timer_After(0, ScanControl)

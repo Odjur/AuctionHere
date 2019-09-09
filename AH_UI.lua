@@ -14,17 +14,24 @@ local function Setup()
 	local AUCTIONS_BUTTON_HEIGHT = AUCTIONS_BUTTON_HEIGHT
 	local UIDropDownMenu_SetSelectedValue = UIDropDownMenu_SetSelectedValue
 	local MouseIsOver = MouseIsOver
+	local UpdateAddOnMemoryUsage = UpdateAddOnMemoryUsage
+	local GetFramerate = GetFramerate
+	local GetAddOnMemoryUsage = GetAddOnMemoryUsage
 	
 	local AuctionFrameBrowse_Reset = addonTable.AuctionFrameBrowse_Reset
 	local BrowseResetButton_OnUpdate = addonTable.BrowseResetButton_OnUpdate
 	local BrowseSearchButton_OnUpdate = addonTable.BrowseSearchButton_OnUpdate
+	local GetAll = addonTable.GetAll
+	local Clear = addonTable.Clear
 	
 	local _, point, relativeTo, relativePoint, x, y
+	
+	AuctionFrameTab_OnClick = addonTable.AuctionFrameTab_OnClick
 	
 	-- AuctionFrame
 	addonTable.point, _, addonTable.relativePoint, addonTable.x, addonTable.y = AuctionFrame:GetPoint()
 	addonTable.y = addonTable.y + 12
-	AuctionFrame:SetHeight(439)
+	AuctionFrame:SetHeight(438)
 	AuctionFrame:SetMovable(true)
 	AuctionFrame:SetScript("OnMouseDown", function(self)
 		self:StartMoving()
@@ -42,6 +49,27 @@ local function Setup()
 		
 		addonTable.point, _, addonTable.relativePoint, addonTable.x, addonTable.y = AuctionFrame:GetPoint()
 	end)
+	
+	-- AuctionFrameTab1
+	point, relativeTo, relativePoint, x, y = AuctionFrameTab1:GetPoint()
+	AuctionFrameTab1:SetPoint(point, relativeTo, relativePoint, x, y - 8)
+	AuctionFrameTab1:SetFrameStrata("LOW")
+	
+	-- AuctionFrameTab2
+	AuctionFrameTab2:SetFrameStrata("LOW")
+	
+	-- AuctionFrameTab3
+	AuctionFrameTab3:SetFrameStrata("LOW")
+	
+	-- AuctionFrameTab4
+	local tab = CreateFrame("Button", "AuctionFrameTab4", AuctionFrame, "AuctionTabTemplate")
+	tab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 235, -434)
+	tab:SetID(4)
+	tab:SetText("AuctionHere")
+	tab:SetFrameStrata("LOW")
+	PanelTemplates_SetNumTabs(AuctionFrame, 4)
+	PanelTemplates_DeselectTab(tab)
+	PanelTemplates_TabResize(tab, 0)
 	
 	-------------------------------------------------------------------------------
 	-- Browse
@@ -269,7 +297,7 @@ local function Setup()
 	
 	-- AuctionFrameMoneyFrame
 	point, relativeTo, relativePoint, x, y = AuctionFrameMoneyFrame:GetPoint()
-	AuctionFrameMoneyFrame:SetPoint(point, relativeTo, relativePoint, x, y - 7)
+	AuctionFrameMoneyFrame:SetPoint(point, relativeTo, relativePoint, x, y - 8)
 	
 	-- BrowseSearchCountText
 	point, relativeTo, relativePoint, x, y = BrowseSearchCountText:GetPoint()
@@ -295,10 +323,6 @@ local function Setup()
 	-- SideDressUpModelResetButton
 	point, relativeTo, relativePoint, x, y = SideDressUpModelResetButton:GetPoint()
 	SideDressUpModelResetButton:SetPoint(point, relativeTo, relativePoint, x, y - 37)
-	
-	-- AuctionFrameTab1
-	point, relativeTo, relativePoint, x, y = AuctionFrameTab1:GetPoint()
-	AuctionFrameTab1:SetPoint(point, relativeTo, relativePoint, x, y - 7)
 	
 	-------------------------------------------------------------------------------
 	-- Bids
@@ -333,22 +357,11 @@ local function Setup()
 	-- AuctionHere
 	-------------------------------------------------------------------------------
 	
-	AuctionFrame_OnLoad = addonTable.AuctionFrame_OnLoad
-	AuctionFrameTab_OnClick = addonTable.AuctionFrameTab_OnClick
-	GetAll = addonTable.GetAll
-	Clear = addonTable.Clear
-	
-	local tab = CreateFrame("Button", "AuctionFrameTab4", AuctionFrame, "AuctionTabTemplate")
-	tab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 235, -434)
-	tab:SetID(4)
-	tab:SetText("AuctionHere")
-	PanelTemplates_SetNumTabs(AuctionFrame, 4)
-	PanelTemplates_DeselectTab(tab)
-	PanelTemplates_TabResize(tab, 0)
-	
-	local container = CreateFrame("Frame", "AuctionHere_Container", tab)
+	-- AuctionHere_Container
+	local container = CreateFrame("Frame", "AuctionHere_Container", AuctionFrame)
 	container:Hide()
 	
+	-- AuctionHere_Title
 	local title = container:CreateFontString("AuctionHere_Title")
 	title:SetPoint("TOP", AuctionFrame, "TOP", 0, -18)
 	title:SetFont("Fonts\\FRIZQT__.TTF", 12)
@@ -356,15 +369,18 @@ local function Setup()
 	title:SetTextColor(1, 0.82, 0, 1)
 	title:SetText("AuctionHere")
 	
+	-- TESTING
 	local notice = container:CreateFontString("AuctionHere_Notice")
-	notice:SetPoint("CENTER", AuctionFrame, "CENTER", 0, 0)
+	notice:SetPoint("TOP", AuctionFrame, "TOP", 0, -42)
 	notice:SetFont("Fonts\\FRIZQT__.TTF", 10)
 	notice:SetShadowOffset(1, -1)
 	
+	local C_Timer_NewTicker = C_Timer.NewTicker
 	local math_floor = math.floor
-	C_Timer.NewTicker(0.1, function()
+	
+	C_Timer_NewTicker(0.1, function()
 		UpdateAddOnMemoryUsage()
-		notice:SetText("This tab is in development, so use it with caution.\n\n" .. math_floor(GetFramerate()) .. " fps\n\nAuctionHere memory: " .. math_floor(GetAddOnMemoryUsage("AuctionHere")) .. " KB")
+		notice:SetText("This tab is in development, so use it with caution.\n" .. math_floor(GetFramerate()) .. " fps\nAuctionHere memory: " .. math_floor(GetAddOnMemoryUsage("AuctionHere")) .. " KB")
 	end)
 	
 	-- AuctionHere_GetAll
@@ -380,6 +396,203 @@ local function Setup()
 	clear:SetSize(80, 22)
 	clear:SetText("Clear")
 	clear:SetScript("OnClick", Clear)
+	
+	for a = 1, 18 do
+		-- AuctionHere_ItemN
+		local itemN = CreateFrame("Button", "AuctionHere_Item" .. a, container)
+		itemN:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 188, -85 - 17 * a)
+		itemN:SetSize(614, 19)
+		
+		-- AuctionHere_ItemNTexture
+		local itemNTexture = itemN:CreateTexture("AuctionHere_Item" .. a .. "Texture", "BACKGROUND")
+		itemNTexture:SetPoint("TOPLEFT", itemN, "TOPLEFT", 0, 0)
+		itemNTexture:SetSize(634, 19)
+		itemNTexture:SetTexture("Interface\\AuctionFrame\\UI-AuctionItemNameFrame")
+		itemNTexture:SetTexCoord(0.078125, 0.75, 0, 1)
+		
+		-- AuctionHere_ItemNIcon
+		
+		-- AuctionHere_ItemNName
+		local itemNName = itemN:CreateFontString("AuctionHere_Item" .. a .. "Name")
+		itemNName:SetPoint("LEFT", itemN, "LEFT", 4, 0)
+		itemNName:SetFont("Fonts\\FRIZQT__.TTF", 10)
+		itemNName:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_ItemNCount
+		local itemNNCount = itemN:CreateFontString("AuctionHere_Item" .. a .. "Count")
+		itemNNCount:SetPoint("LEFT", itemN, "LEFT", 320, 0)
+		itemNNCount:SetFont("Fonts\\FRIZQT__.TTF", 10)
+		itemNNCount:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_ItemNDuration
+		local itemNDuration = itemN:CreateFontString("AuctionHere_Item" .. a .. "Duration")
+		itemNDuration:SetPoint("LEFT", itemN, "LEFT", 365, 0)
+		itemNDuration:SetFont("Fonts\\FRIZQT__.TTF", 10)
+		itemNDuration:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_ItemNBid
+		local itemNBid = itemN:CreateFontString("AuctionHere_Item" .. a .. "Bid")
+		itemNBid:SetPoint("LEFT", itemN, "LEFT", 430, 0)
+		itemNBid:SetFont("Fonts\\FRIZQT__.TTF", 10)
+		itemNBid:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_ItemNBuyout
+		local itemNBuyout = itemN:CreateFontString("AuctionHere_Item" .. a .. "Buyout")
+		itemNBuyout:SetPoint("LEFT", itemN, "LEFT", 513, 0)
+		itemNBuyout:SetFont("Fonts\\FRIZQT__.TTF", 10)
+		itemNBuyout:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_ItemNPercent
+		local itemNPercent = itemN:CreateFontString("AuctionHere_Item" .. a .. "Percent")
+		itemNPercent:SetPoint("LEFT", itemN, "LEFT", 592, 0)
+		itemNPercent:SetFont("Fonts\\FRIZQT__.TTF", 10)
+		itemNPercent:SetShadowOffset(1, -1)
+	end
+	
+	-- AuctionHere_Slider
+	local slider = CreateFrame("Slider", "AuctionHere_Slider", container, "UIPanelScrollBarTemplate")
+	slider:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 804, -120)
+	slider:SetSize(18, 273)
+	slider:SetValueStep(1)
+	slider:SetObeyStepOnDrag(true)
+	
+	-- TESTING
+	local math_ceil = math.ceil
+	local table_sort = table.sort
+	local snapshot = AuctionHere_data.snapshot
+	local prices = AuctionHere_data.prices["14 day median"]
+	
+	table_sort(snapshot, function(a, b)
+		return ((a[3] / a[1]) / (prices[a[6]][a[7]] or 1)) < ((b[3] / b[1]) / (prices[b[6]][b[7]] or 1))
+	end)
+	
+	slider:SetScript("OnValueChanged", function(_, value)
+		local position = math_min(#snapshot, 18)
+		
+		for a = 1, position do
+			local index = a + value
+			local auction = snapshot[index]
+			local count = auction[1]
+			local buyout = auction[3]
+			local ID = auction[6]
+			local _, link = GetItemInfo(ID)
+			local percent = math_ceil(((buyout / count) / (prices[ID][auction[7]] or 1)) * 100)
+			
+			if percent > 999 then
+				percent = 999
+			end
+			
+			_G["AuctionHere_Item" .. a .. "Name"]:SetText(link or "")
+			_G["AuctionHere_Item" .. a .. "Count"]:SetText(count)
+			_G["AuctionHere_Item" .. a .. "Duration"]:SetText("N/A")
+			_G["AuctionHere_Item" .. a .. "Bid"]:SetText(math_ceil((auction[4] or auction[2]) * 1.05))
+			_G["AuctionHere_Item" .. a .. "Buyout"]:SetText(buyout)
+			_G["AuctionHere_Item" .. a .. "Percent"]:SetText(percent)
+		end
+		
+		for a = position + 1, 18 do
+			_G["AuctionHere_Item" .. a]:Hide()
+		end
+	end)
+	
+	slider:SetMinMaxValues(0, math_max(0, #snapshot - 18))
+	slider:SetValue(0)
+	
+	-- AuctionHere_BuyTab
+	local buyTab = CreateFrame("Button", "AuctionHere_BuyTab", container, "AuctionClassButtonTemplate")
+	buyTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 180, -413)
+	buyTab:SetSize(42, 20)
+	buyTab:SetText("Buy")
+	buyTab:LockHighlight()
+	buyTab:SetScript("OnClick", function(self)
+		AuctionHere_SellTab:UnlockHighlight()
+		AuctionHere_ListsTab:UnlockHighlight()
+		AuctionHere_PricesTab:UnlockHighlight()
+		AuctionHere_Sell:Hide()
+		AuctionHere_Lists:Hide()
+		AuctionHere_Prices:Hide()
+		self:LockHighlight()
+		AuctionHere_Buy:Show()
+	end)
+	
+	-- AuctionHere_SellTab
+	local sellTab = CreateFrame("Button", "AuctionHere_SellTab", container, "AuctionClassButtonTemplate")
+	sellTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 222, -413)
+	sellTab:SetSize(42, 20)
+	sellTab:SetText("Sell")
+	sellTab:SetScript("OnClick", function(self)
+		AuctionHere_BuyTab:UnlockHighlight()
+		AuctionHere_ListsTab:UnlockHighlight()
+		AuctionHere_PricesTab:UnlockHighlight()
+		AuctionHere_Buy:Hide()
+		AuctionHere_Lists:Hide()
+		AuctionHere_Prices:Hide()
+		self:LockHighlight()
+		AuctionHere_Sell:Show()
+	end)
+	
+	-- AuctionHere_ListsTab
+	local listsTab = CreateFrame("Button", "AuctionHere_ListsTab", container, "AuctionClassButtonTemplate")
+	listsTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 264, -413)
+	listsTab:SetSize(42, 20)
+	listsTab:SetText("Lists")
+	listsTab:SetScript("OnClick", function(self)
+		AuctionHere_BuyTab:UnlockHighlight()
+		AuctionHere_SellTab:UnlockHighlight()
+		AuctionHere_PricesTab:UnlockHighlight()
+		AuctionHere_Buy:Hide()
+		AuctionHere_Sell:Hide()
+		AuctionHere_Prices:Hide()
+		self:LockHighlight()
+		AuctionHere_Lists:Show()
+	end)
+	
+	-- AuctionHere_PricesTab
+	local pricesTab = CreateFrame("Button", "AuctionHere_PricesTab", container, "AuctionClassButtonTemplate")
+	pricesTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 306, -413)
+	pricesTab:SetSize(42, 20)
+	pricesTab:SetText("Prices")
+	pricesTab:SetScript("OnClick", function(self)
+		AuctionHere_BuyTab:UnlockHighlight()
+		AuctionHere_SellTab:UnlockHighlight()
+		AuctionHere_ListsTab:UnlockHighlight()
+		AuctionHere_Buy:Hide()
+		AuctionHere_Sell:Hide()
+		AuctionHere_Lists:Hide()
+		self:LockHighlight()
+		AuctionHere_Prices:Show()
+	end)
+	
+	-------------------------------------------------------------------------------
+	-- AuctionHere Buy
+	-------------------------------------------------------------------------------
+	
+	-- AuctionHere_Buy
+	local buy = CreateFrame("Frame", "AuctionHere_Buy", container)
+	
+	-------------------------------------------------------------------------------
+	-- AuctionHere Sell
+	-------------------------------------------------------------------------------
+	
+	-- AuctionHere_Sell
+	local sell = CreateFrame("Frame", "AuctionHere_Sell", container)
+	sell:Hide()
+	
+	-------------------------------------------------------------------------------
+	-- AuctionHere Lists
+	-------------------------------------------------------------------------------
+	
+	-- AuctionHere_Lists
+	local lists = CreateFrame("Frame", "AuctionHere_Lists", container)
+	lists:Hide()
+	
+	-------------------------------------------------------------------------------
+	-- AuctionHere Prices
+	-------------------------------------------------------------------------------
+	
+	-- AuctionHere_Prices
+	local prices = CreateFrame("Frame", "AuctionHere_Prices", container)
+	prices:Hide()
 end
 
 addonTable.Setup = Setup
