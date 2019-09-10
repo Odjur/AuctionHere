@@ -64,6 +64,18 @@ end
 
 addonTable.AuctionFrameTab_OnClick = AuctionFrameTab_OnClick_
 
+ -- Blizzard_AuctionUI.lua 267
+local function AuctionFrameBrowse_UpdateArrows_()
+	SortButton_UpdateArrow(AuctionHere_Count, "list", "quantity")
+	SortButton_UpdateArrow(BrowseQualitySort, "list", "quality")
+	SortButton_UpdateArrow(BrowseLevelSort, "list", "level")
+	SortButton_UpdateArrow(BrowseDurationSort, "list", "duration")
+	SortButton_UpdateArrow(BrowseHighBidderSort, "list", "seller")
+	SortButton_UpdateArrow(BrowseCurrentBidSort, "list", "unitprice")
+end
+
+addonTable.AuctionFrameBrowse_UpdateArrows = AuctionFrameBrowse_UpdateArrows_
+
  -- Blizzard_AuctionUI.lua 324
 local function AuctionFrameBrowse_Reset_(self)
 	BrowseName:SetText("")
@@ -262,17 +274,13 @@ local function AuctionFrameBrowse_Update_()
 				-- Resize button if there isn't a scrollbar
 				buttonHighlight = _G["BrowseButton" .. i .. "Highlight"]
 				
-				if numBatchAuctions < NUM_BROWSE_TO_DISPLAY then
-					button:SetWidth(625)
-					buttonHighlight:SetWidth(591)
-					BrowseCurrentBidSort:SetWidth(207)
-				elseif (numBatchAuctions == NUM_BROWSE_TO_DISPLAY) and (totalAuctions <= NUM_BROWSE_TO_DISPLAY) then
-					button:SetWidth(625)
-					buttonHighlight:SetWidth(591)
-					BrowseCurrentBidSort:SetWidth(207)
+				if (numBatchAuctions < NUM_BROWSE_TO_DISPLAY) or ((numBatchAuctions == NUM_BROWSE_TO_DISPLAY) and (totalAuctions <= NUM_BROWSE_TO_DISPLAY)) then
+					button:SetWidth(635)
+					buttonHighlight:SetWidth(602)
+					BrowseCurrentBidSort:SetWidth(209)
 				else
-					button:SetWidth(600)
-					buttonHighlight:SetWidth(567)
+					button:SetWidth(610)
+					buttonHighlight:SetWidth(577)
 					BrowseCurrentBidSort:SetWidth(184)
 				end
 				

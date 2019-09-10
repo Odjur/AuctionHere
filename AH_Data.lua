@@ -35,6 +35,7 @@ do
 		prices = AuctionHere_data.prices
 		snapshot = AuctionHere_data.snapshot
 		
+		AuctionHere_data.state.snapshot = nil
 		wipe(scans)
 		wipe(prices)
 		wipe(snapshot)

@@ -77,6 +77,7 @@ local function Setup()
 	-- Browse
 	-------------------------------------------------------------------------------
 	
+	AuctionFrameBrowse_UpdateArrows = addonTable.AuctionFrameBrowse_UpdateArrows
 	AuctionFrameBrowse_Search = addonTable.AuctionFrameBrowse_Search
 	AuctionFrameBrowse_Update = addonTable.AuctionFrameBrowse_Update
 	
@@ -106,9 +107,13 @@ local function Setup()
 	point, relativeTo, relativePoint, x, y = BrowseLevelHyphen:GetPoint()
 	BrowseLevelHyphen:SetPoint(point, relativeTo, relativePoint, x + 3, y)
 	
+	-- BrowseDropDownName
+	point, relativeTo, relativePoint, x, y = BrowseDropDownName:GetPoint()
+	BrowseDropDownName:SetPoint(point, relativeTo, relativePoint, x, y + 1)
+	
 	-- BrowseDropDown
 	point, relativeTo, relativePoint, x, y = BrowseDropDown:GetPoint()
-	BrowseDropDown:SetPoint(point, relativeTo, relativePoint, x - 1, y)
+	BrowseDropDown:SetPoint(point, relativeTo, relativePoint, x - 1, y - 1)
 	UIDropDownMenu_SetSelectedValue(BrowseDropDown, -1)
 	
 	-- BrowseDropDownButton
@@ -125,11 +130,12 @@ local function Setup()
 	
 	-- ShowOnPlayerCheckButton
 	point, relativeTo, relativePoint, x, y = ShowOnPlayerCheckButton:GetPoint()
-	ShowOnPlayerCheckButton:SetPoint(point, relativeTo, relativePoint, x - 137, y)
+	ShowOnPlayerCheckButton:SetPoint(point, relativeTo, relativePoint, x - 129, y)
 	
 	-- BrowseShowOnCharacterText
 	point, relativeTo, relativePoint, x, y = BrowseShowOnCharacterText:GetPoint()
 	BrowseShowOnCharacterText:SetPoint(point, relativeTo, relativePoint, x - 210, y - 8)
+	BrowseShowOnCharacterText:SetText("Preview Equipment")
 	
 	-- BrowseSearchButton
 	point, relativeTo, relativePoint, x, y = BrowseSearchButton:GetPoint()
@@ -146,7 +152,7 @@ local function Setup()
 	
 	-- BrowsePrevPageButton
 	point, relativeTo, relativePoint, x, y = BrowsePrevPageButton:GetPoint()
-	BrowsePrevPageButton:SetPoint(point, relativeTo, relativePoint, x + 441, y + 262)
+	BrowsePrevPageButton:SetPoint(point, relativeTo, relativePoint, x + 451, y + 262)
 	
 	-- BrowseNextPageButton
 	BrowseNextPageButton:ClearAllPoints()
@@ -181,6 +187,52 @@ local function Setup()
 		BrowseFilterScrollFrame:SetVerticalScroll(math_min(math_max(BrowseFilterScrollFrame:GetVerticalScroll() - delta * 20, 0), BrowseFilterScrollFrame:GetVerticalScrollRange()))
 	end)
 	
+	-- AuctionHere_Count
+	local count = CreateFrame("Button", "AuctionHere_Count", AuctionFrameBrowse, "AuctionSortButtonTemplate")
+	count:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 184, -82)
+	count:SetSize(37, 19)
+	count:SetText("#")
+	count:SetScript("OnClick", function()
+		AuctionFrame_OnClickSortColumn("list", "quantity")
+	end)
+	
+	AuctionSort.list_quantity = {
+		{
+			column = "quantity",
+			["reverse"] = true
+		}
+	}
+	
+	-- BrowseQualitySort
+	point, relativeTo, relativePoint, x, y = BrowseQualitySort:GetPoint()
+	BrowseQualitySort:SetPoint(point, relativeTo, relativePoint, x + 33, y)
+	BrowseQualitySort:SetWidth(187)
+	
+	-- BrowseLevelSort
+	BrowseLevelSort:SetWidth(43)
+	
+	-- BrowseDurationSort
+	BrowseDurationSort:SetWidth(74)
+	BrowseDurationSort:SetText("Duration")
+	
+	-- BrowseHighBidderSort
+	BrowseHighBidderSort:SetWidth(100)
+	
+	-- BrowseCurrentBidSort
+	BrowseCurrentBidSort:SetWidth(209)
+	BrowseCurrentBidSort:SetText("Buyout unit price")
+	BrowseCurrentBidSort:SetScript("OnClick", function()
+		AuctionFrame_OnClickSortColumn("list", "unitprice")
+	end)
+	
+	AuctionSort.list_bid = nil
+	AuctionSort.list_unitprice = {
+		{
+			column = "unitprice",
+			["reverse"] = false
+		}
+	}
+	
 	for a = 9, NUM_BROWSE_TO_DISPLAY do
 		-- BrowseButtonN
 		browseButtonN = CreateFrame("Button", "BrowseButton" .. a, AuctionFrameBrowse, "BrowseButtonTemplate")
@@ -199,7 +251,7 @@ local function Setup()
 		if a > 1 then
 			browseButtonN:SetPoint(point, relativeTo, relativePoint, 0, 0)
 		else
-			browseButtonN:SetPoint(point, relativeTo, relativePoint, x, y + 4)
+			browseButtonN:SetPoint(point, relativeTo, relativePoint, x - 10, y + 4)
 		end
 		
 		browseButtonN:SetHeight(AUCTIONS_BUTTON_HEIGHT)
@@ -246,15 +298,18 @@ local function Setup()
 		-- BrowseButtonNName
 		local browseButtonNName = _G[name .. "Name"]
 		point, relativeTo, relativePoint, x, y = browseButtonNName:GetPoint()
-		browseButtonNName:SetPoint(point, relativeTo, relativePoint, x, y + 2)
+		browseButtonNName:SetPoint(point, relativeTo, relativePoint, x - 3, y + 2)
+		browseButtonNName:SetWidth(177)
 		
 		-- BrowseButtonNLevel
 		local browseButtonNLevel = _G[name .. "Level"]
 		point, relativeTo, relativePoint, x, y = browseButtonNLevel:GetPoint()
-		browseButtonNLevel:SetPoint(point, relativeTo, relativePoint, x, y + 2)
+		browseButtonNLevel:SetPoint(point, relativeTo, relativePoint, x + 10, y + 2)
 		
 		-- BrowseButtonNClosingTime
 		local browseButtonNClosingTime = _G[name .. "ClosingTime"]
+		point, relativeTo, relativePoint, x, y = browseButtonNClosingTime:GetPoint()
+		browseButtonNClosingTime:SetPoint(point, relativeTo, relativePoint, x - 2, y + 2)
 		browseButtonNClosingTime:SetHeight(30)
 		browseButtonNClosingTime:SetScript("OnMouseUp", function(_, button)
 			if button == "LeftButton" and MouseIsOver(browseButtonN) then
@@ -262,15 +317,11 @@ local function Setup()
 			end
 		end)
 		
-		-- BrowseButtonNClosingTimeText
-		local browseButtonNClosingTimeText = _G[name .. "ClosingTimeText"]
-		point, relativeTo, relativePoint, x, y = browseButtonNClosingTimeText:GetPoint()
-		browseButtonNClosingTimeText:SetPoint(point, relativeTo, relativePoint, x + 4, y + 2)
-		
 		-- BrowseButtonNHighBidder
 		local browseButtonNHighBidder = _G[name .. "HighBidder"]
 		point, relativeTo, relativePoint, x, y = browseButtonNHighBidder:GetPoint()
-		browseButtonNHighBidder:SetPoint(point, relativeTo, relativePoint, x + 1, y + 1)
+		browseButtonNHighBidder:SetPoint(point, relativeTo, relativePoint, x + - 10, y + 1)
+		browseButtonNHighBidder:SetWidth(95)
 		browseButtonNHighBidder:EnableMouse(false)
 		
 		-- BrowseButtonNHighBidderName
