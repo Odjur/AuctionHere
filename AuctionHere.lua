@@ -22,37 +22,23 @@ eventFrame:SetScript("OnEvent", function(_, _, addon)
 			}
 		end
 		
-		local select = select
 		local collectgarbage = collectgarbage
-		
-		local CanSendAuctionQuery = CanSendAuctionQuery
 		
 		local Setup = addonTable.Setup
 		
 		collectgarbage()
 		
-		eventFrame:SetScript("OnEvent", function(_, event)
-			if event == "PLAYER_ALIVE" then
-				if select(2, CanSendAuctionQuery()) then
-					local AuctionHere_data = AuctionHere_data
-					AuctionHere_data.state.getAll = 0
-				end
-			else
-				if Setup then
-					Setup()
-					
-					Setup = nil
-				end
+		eventFrame:SetScript("OnEvent", function()
+			if Setup then
+				Setup()
 				
-				AuctionFrame:ClearAllPoints()
-				AuctionFrame:SetPoint(addonTable.point, UIParent, addonTable.relativePoint, addonTable.x, addonTable.y)
-				
-				BrowseNextPageButton:Show()
-				BrowsePrevPageButton:Show()
+				Setup = nil
 			end
+			
+			BrowseNextPageButton:Show()
+			BrowsePrevPageButton:Show()
 		end)
 		
-		eventFrame:RegisterEvent("PLAYER_ALIVE")
 		eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
 	end
 end)

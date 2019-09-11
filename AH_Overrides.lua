@@ -21,6 +21,7 @@ local function AuctionFrameTab_OnClick_(self, button, down, index)
 	PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
 	
 	if index == 1 then
+		AuctionFrameBrowse:RegisterEvent("AUCTION_ITEM_LIST_UPDATE")
 		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-TopLeft")
 		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-Top")
 		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-TopRight")
@@ -31,6 +32,7 @@ local function AuctionFrameTab_OnClick_(self, button, down, index)
 		AuctionFrame.type = "list"
 		SetAuctionsTabShowing(false)
 	elseif index == 2 then
+		AuctionFrameBrowse:RegisterEvent("AUCTION_ITEM_LIST_UPDATE")
 		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Bid-TopLeft")
 		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Top")
 		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-TopRight")
@@ -41,6 +43,7 @@ local function AuctionFrameTab_OnClick_(self, button, down, index)
 		AuctionFrame.type = "bidder"
 		SetAuctionsTabShowing(false)
 	elseif index == 3 then
+		AuctionFrameBrowse:RegisterEvent("AUCTION_ITEM_LIST_UPDATE")
 		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-TopLeft")
 		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-Top")
 		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Auction-TopRight")
@@ -50,6 +53,7 @@ local function AuctionFrameTab_OnClick_(self, button, down, index)
 		AuctionFrameAuctions:Show()
 		SetAuctionsTabShowing(true)
 	elseif index == 4 then
+		AuctionFrameBrowse:UnregisterEvent("AUCTION_ITEM_LIST_UPDATE")
 		AuctionFrameTopLeft:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-TopLeft")
 		AuctionFrameTop:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-Top")
 		AuctionFrameTopRight:SetTexture("Interface\\AuctionFrame\\UI-AuctionFrame-Browse-TopRight")
@@ -128,6 +132,28 @@ end
 
 addonTable.BrowseResetButton_OnUpdate = BrowseResetButton_OnUpdate_
 
+ -- Blizzard_AuctionUI.lua 375
+local function AuctionFrame_OnClickSortColumn_(sortTable, sortColumn)
+	local existingSortColumn, existingSortReverse = GetAuctionSort(sortTable, 1)
+	local oppositeOrder = false
+	
+	if existingSortColumn and (existingSortColumn == sortColumn) then
+		oppositeOrder = not existingSortReverse
+	elseif sortColumn == "quantity" or sortColumn == "level" then
+		oppositeOrder = true
+	end
+	
+	AuctionFrame_SetSort(sortTable, sortColumn, oppositeOrder)
+	
+	if sortTable == "list" then
+		AuctionFrameBrowse_Search()
+	else
+		SortAuctionApplySort(sortTable)
+	end
+end
+
+addonTable.AuctionFrame_OnClickSortColumn = AuctionFrame_OnClickSortColumn_
+
 local prevPage
 
  -- Blizzard_AuctionUI.lua 397
@@ -194,6 +220,7 @@ local function BrowseSearchButton_OnUpdate_(self, elapsed)
 			BrowseNextPageButton:Disable()
 		end
 		
+		AuctionHere_Count:Enable()
 		BrowseQualitySort:Enable()
 		BrowseLevelSort:Enable()
 		BrowseDurationSort:Enable()
@@ -204,6 +231,7 @@ local function BrowseSearchButton_OnUpdate_(self, elapsed)
 		self:Disable()
 		BrowsePrevPageButton:Disable()
 		BrowseNextPageButton:Disable()
+		AuctionHere_Count:Disable()
 		BrowseQualitySort:Disable()
 		BrowseLevelSort:Disable()
 		BrowseDurationSort:Disable()
@@ -234,10 +262,10 @@ local function AuctionFrameBrowse_Update_()
 		-- Show the no results text if no items found
 		if numBatchAuctions == 0 then
 			BrowseNoResultsText:Show()
-			
 			BrowseSearchCountText:Hide()
-			
 			AuctionHere_PageText:Hide()
+			
+			BrowseCurrentBidSort:SetWidth(209)
 		else
 			BrowseNoResultsText:Hide()
 			

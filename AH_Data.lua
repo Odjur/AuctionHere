@@ -11,7 +11,6 @@ local string_gsub = string.gsub
 local table_sort = table.sort
 local table_concat = table.concat
 local pairs = pairs
-local select = select
 local tonumber = tonumber
 local collectgarbage = collectgarbage
 
@@ -482,6 +481,9 @@ do
 				ScanInfo()
 			else
 				if CanSendAuctionQuery() and GetNumAuctionItems("list") == total then
+					local AuctionHere_data = AuctionHere_data
+					AuctionHere_data.state.getAll = GetServerTime()
+					
 					Save()
 				else
 					C_Timer_After(0, ScanControl)
@@ -504,17 +506,10 @@ do
 		
 		-- Search the entire auction house at once
 		local function GetAll()
-			if select(2, CanSendAuctionQuery()) then
-				AuctionFrameBrowse:UnregisterEvent("AUCTION_ITEM_LIST_UPDATE")
-				
-				local AuctionHere_data = AuctionHere_data
-				AuctionHere_data.state.getAll = GetServerTime()
-				
-				-- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
-				QueryAuctionItems("", nil, nil, 0, false, 0, true, false, nil)
-				
-				Scan()
-			end
+			-- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
+			QueryAuctionItems("", nil, nil, 0, false, 0, true, false, nil)
+			
+			Scan()
 		end
 		
 		addonTable.GetAll = GetAll
