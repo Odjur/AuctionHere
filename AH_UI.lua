@@ -7,6 +7,7 @@ local function Setup()
 	local math_floor = math.floor
 	local math_min = math.min
 	local math_max = math.max
+	local pairs = pairs
 	local select = select
 	local _G = _G
 	
@@ -188,6 +189,165 @@ local function Setup()
 	
 	-- BrowseTabText
 	BrowseTabText:SetText("Exact Match")
+	
+	-- AuctionCategories
+	AuctionCategories[3].subCategories[5] = AuctionCategories[7].subCategories[1]
+	AuctionCategories[3].subCategories[6] = AuctionCategories[7].subCategories[2]
+	local categories = {1, 2, 6, 3, 4, 5, 9, 8, 10}
+	
+	for a, b in pairs(categories) do
+		categories[a] = AuctionCategories[b]
+	end
+	
+	AuctionCategories = categories
+	AuctionCategories[3].name = "Projectiles"
+	AuctionCategories[4].name = "Containers"
+	AuctionCategories[5].name = "Consumables"
+	AuctionCategories[7].name = "Reagents"
+	AuctionCategories[8].name = "Recipes"
+	
+	-- Weapons
+	local subCategories = {8, 9, 1, 2, 5, 6, 13, 11, 7, 10, 3, 15, 4, 16, 14, 17, 12}
+	
+	for a, b in pairs(subCategories) do
+		subCategories[a] = AuctionCategories[1].subCategories[b]
+	end
+	
+	AuctionCategories[1].filters = {{["classID"] = 2}}
+	AuctionCategories[1].subCategories = subCategories
+	AuctionCategories[1].subCategories[15].name = "Thrown Weapons"
+	AuctionCategories[1].subCategories[16].name = "Fishing Poles"
+	
+	-- Armor
+	AuctionCategories[2].filters = {{["classID"] = 4}}
+	AuctionCategories[2].subCategories[10] = AuctionCategories[2].subCategories[9]
+	AuctionCategories[2].subCategories[9] = AuctionCategories[2].subCategories[7]
+	AuctionCategories[2].subCategories[7] = AuctionCategories[2].subCategories[1].subCategories[14]
+	
+	-- Miscellaneous
+	AuctionCategories[2].subCategories[1].filters[3] = AuctionCategories[2].subCategories[2].filters[14]
+	AuctionCategories[2].subCategories[1].subCategories[3] = AuctionCategories[2].subCategories[2].subCategories[13]
+	
+	local filters = {}
+	local subCategories = {1, 2, 3, 4, 8, 11, 12}
+	
+	for a, b in pairs(subCategories) do
+		filters[a] = AuctionCategories[2].subCategories[1].filters[b]
+		subCategories[a] = AuctionCategories[2].subCategories[1].subCategories[b]
+	end
+	
+	AuctionCategories[2].subCategories[1].filters = filters
+	AuctionCategories[2].subCategories[1].subCategories = subCategories
+	AuctionCategories[2].subCategories[1].subCategories[4].name = "Shirts"
+	
+	-- Cloth
+	local filters = {}
+	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
+	
+	for a, b in pairs(subCategories) do
+		filters[a] = AuctionCategories[2].subCategories[2].filters[b + 1]
+		subCategories[a] = AuctionCategories[2].subCategories[2].subCategories[b]
+	end
+	
+	filters[9] = AuctionCategories[2].subCategories[2].filters[16]
+	AuctionCategories[2].subCategories[2].filters = filters
+	AuctionCategories[2].subCategories[2].subCategories = subCategories
+	AuctionCategories[2].subCategories[2].subCategories[2].name = "Shoulders"
+	AuctionCategories[2].subCategories[2].subCategories[4].name = "Wrists"
+	
+	-- Leather
+	local filters = {}
+	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
+	
+	for a, b in pairs(subCategories) do
+		filters[a] = AuctionCategories[2].subCategories[3].filters[b + 1]
+		subCategories[a] = AuctionCategories[2].subCategories[3].subCategories[b]
+	end
+	
+	filters[9] = AuctionCategories[2].subCategories[3].filters[16]
+	AuctionCategories[2].subCategories[3].filters = filters
+	AuctionCategories[2].subCategories[3].subCategories = subCategories
+	AuctionCategories[2].subCategories[3].subCategories[2].name = "Shoulders"
+	AuctionCategories[2].subCategories[3].subCategories[4].name = "Wrists"
+	
+	-- Mail
+	local filters = {}
+	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
+	
+	for a, b in pairs(subCategories) do
+		filters[a] = AuctionCategories[2].subCategories[4].filters[b + 1]
+		subCategories[a] = AuctionCategories[2].subCategories[4].subCategories[b]
+	end
+	
+	filters[9] = AuctionCategories[2].subCategories[4].filters[16]
+	AuctionCategories[2].subCategories[4].filters = filters
+	AuctionCategories[2].subCategories[4].subCategories = subCategories
+	AuctionCategories[2].subCategories[4].subCategories[2].name = "Shoulders"
+	AuctionCategories[2].subCategories[4].subCategories[4].name = "Wrists"
+	
+	-- Plate
+	local filters = {}
+	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
+	
+	for a, b in pairs(subCategories) do
+		filters[a] = AuctionCategories[2].subCategories[5].filters[b + 1]
+		subCategories[a] = AuctionCategories[2].subCategories[5].subCategories[b]
+	end
+	
+	filters[9] = AuctionCategories[2].subCategories[5].filters[16]
+	AuctionCategories[2].subCategories[5].filters = filters
+	AuctionCategories[2].subCategories[5].subCategories = subCategories
+	AuctionCategories[2].subCategories[5].subCategories[2].name = "Shoulders"
+	AuctionCategories[2].subCategories[5].subCategories[4].name = "Wrists"
+	
+	-- Projectiles
+	AuctionCategories[3].filters = {{["classID"] = 6}}
+	AuctionCategories[3].subCategories[1].name = "Arrows"
+	AuctionCategories[3].subCategories[2].name = "Bullets"
+	
+	-- Containers
+	local subCategories = {1, 3, 4, 2, 5, 6}
+	
+	for a, b in pairs(subCategories) do
+		subCategories[a] = AuctionCategories[4].subCategories[b]
+	end
+	
+	AuctionCategories[4].filters = {
+		{["classID"] = 1},
+		{["classID"] = 11}
+	}
+	
+	AuctionCategories[4].subCategories = subCategories
+	AuctionCategories[4].subCategories[1].name = "Bags"
+	AuctionCategories[4].subCategories[2].name = "Herb Bags"
+	AuctionCategories[4].subCategories[3].name = "Enchanting Bags"
+	AuctionCategories[4].subCategories[4].name = "Soul Bags"
+	AuctionCategories[4].subCategories[5].name = "Quivers"
+	AuctionCategories[4].subCategories[6].name = "Ammo Pouches"
+	
+	-- Recipes
+	local subCategories = {1, 3, 2, 5, 4, 9, 7, 10, 8, 6}
+	
+	for a, b in pairs(subCategories) do
+		subCategories[a] = AuctionCategories[8].subCategories[b]
+	end
+	
+	AuctionCategories[8].filters = {{["classID"] = 9}}
+	AuctionCategories[8].subCategories = subCategories
+	AuctionCategories[8].subCategories[1].name = "Books"
+	
+	-- Miscellaneous
+	AuctionCategories[9].filters = {
+		{["classID"] = 15},
+		{["classID"] = 3},
+		{["classID"] = 8},
+		{["classID"] = 10},
+		{["classID"] = 12},
+		{["classID"] = 13},
+		{["classID"] = 14}
+	}
+	
+	AuctionFrameFilters_Update()
 	
 	-- BrowseFilterScrollFrameScrollBar
 	BrowseFilterScrollFrameScrollBar:SetScript("OnMouseWheel", function(_, delta)
@@ -534,25 +694,25 @@ local function Setup()
 		
 		-- AuctionHere_ItemNCount
 		local itemNNCount = itemN:CreateFontString("AuctionHere_Item" .. a .. "Count")
-		itemNNCount:SetPoint("RIGHT", itemN, "RIGHT", -274, 0)
+		itemNNCount:SetPoint("RIGHT", itemN, "RIGHT", -276, 0)
 		itemNNCount:SetFont("Fonts\\FRIZQT__.TTF", 10)
 		itemNNCount:SetShadowOffset(1, -1)
 		
 		-- AuctionHere_ItemNDuration
 		local itemNDuration = itemN:CreateFontString("AuctionHere_Item" .. a .. "Duration")
-		itemNDuration:SetPoint("RIGHT", itemN, "RIGHT", -216, 0)
+		itemNDuration:SetPoint("RIGHT", itemN, "RIGHT", -218, 0)
 		itemNDuration:SetFont("Fonts\\FRIZQT__.TTF", 10)
 		itemNDuration:SetShadowOffset(1, -1)
 		
 		-- AuctionHere_ItemNBid
 		local itemNBid = itemN:CreateFontString("AuctionHere_Item" .. a .. "Bid")
-		itemNBid:SetPoint("RIGHT", itemN, "RIGHT", -131, 0)
+		itemNBid:SetPoint("RIGHT", itemN, "RIGHT", -133, 0)
 		itemNBid:SetFont("Fonts\\FRIZQT__.TTF", 10)
 		itemNBid:SetShadowOffset(1, -1)
 		
 		-- AuctionHere_ItemNBuyout
 		local itemNBuyout = itemN:CreateFontString("AuctionHere_Item" .. a .. "Buyout")
-		itemNBuyout:SetPoint("RIGHT", itemN, "RIGHT", -46, 0)
+		itemNBuyout:SetPoint("RIGHT", itemN, "RIGHT", -48, 0)
 		itemNBuyout:SetFont("Fonts\\FRIZQT__.TTF", 10)
 		itemNBuyout:SetShadowOffset(1, -1)
 		
@@ -656,37 +816,37 @@ local function Setup()
 	-- AuctionHere_NameSort
 	local nameSort = CreateFrame("Button", "AuctionHere_NameSort", buy, "AuctionSortButtonTemplate")
 	nameSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 184, -82)
-	nameSort:SetSize(338, 19)
+	nameSort:SetSize(336, 19)
 	nameSort:SetText("Name")
 	
 	-- AuctionHere_CountSort
 	local countSort = CreateFrame("Button", "AuctionHere_CountSort", buy, "AuctionSortButtonTemplate")
-	countSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 520, -82)
+	countSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 518, -82)
 	countSort:SetSize(31, 19)
 	countSort:SetText("#")
 	
 	-- AuctionHere_DurationSort
 	local durationSort = CreateFrame("Button", "AuctionHere_DurationSort", buy, "AuctionSortButtonTemplate")
-	durationSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 549, -82)
+	durationSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 547, -82)
 	durationSort:SetSize(60, 19)
 	durationSort:SetText("Duration")
 	
 	-- AuctionHere_BidSort
 	local bidSort = CreateFrame("Button", "AuctionHere_BidSort", buy, "AuctionSortButtonTemplate")
-	bidSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 607, -82)
+	bidSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 605, -82)
 	bidSort:SetSize(87, 19)
 	bidSort:SetText("Bid")
 	
 	-- AuctionHere_BuyoutSort
 	local buyoutSort = CreateFrame("Button", "AuctionHere_BuyoutSort", buy, "AuctionSortButtonTemplate")
-	buyoutSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 692, -82)
+	buyoutSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 690, -82)
 	buyoutSort:SetSize(87, 19)
 	buyoutSort:SetText("Buyout")
 	
 	-- AuctionHere_PercentSort
 	local percentSort = CreateFrame("Button", "AuctionHere_PercentSort", buy, "AuctionSortButtonTemplate")
-	percentSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 777, -82)
-	percentSort:SetSize(29, 19)
+	percentSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 775, -82)
+	percentSort:SetSize(31, 19)
 	percentSort:SetText("%")
 	
 	-------------------------------------------------------------------------------
