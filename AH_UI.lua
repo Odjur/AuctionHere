@@ -5,8 +5,10 @@ local _, addonTable = ...
 local function Setup()
 	local C_Timer_NewTicker = C_Timer.NewTicker
 	local math_floor = math.floor
+	local math_ceil = math.ceil
 	local math_min = math.min
 	local math_max = math.max
+	local table_sort = table.sort
 	local pairs = pairs
 	local select = select
 	local _G = _G
@@ -60,11 +62,11 @@ local function Setup()
 		BrowseBidPriceGold:ClearFocus()
 		BrowseBidPriceSilver:ClearFocus()
 		BrowseBidPriceCopper:ClearFocus()
+		AuctionHere_BuyFilters:ClearFocus()
 	end)
 	
 	AuctionFrame:SetScript("OnMouseUp", function(self)
 		self:StopMovingOrSizing()
-		
 		AuctionFrame.SetPoint = function() end
 	end)
 	
@@ -104,7 +106,6 @@ local function Setup()
 	-- BrowseMinLevel
 	BrowseMinLevel:SetScript("OnEnterPressed", function(self)
 		AuctionFrameBrowse_Search()
-		
 		self:ClearFocus()
 	end)
 	
@@ -113,7 +114,6 @@ local function Setup()
 	BrowseMaxLevel:SetPoint(point, relativeTo, relativePoint, x + 3, y)
 	BrowseMaxLevel:SetScript("OnEnterPressed", function(self)
 		AuctionFrameBrowse_Search()
-		
 		self:ClearFocus()
 	end)
 	
@@ -191,153 +191,154 @@ local function Setup()
 	BrowseTabText:SetText("Exact Match")
 	
 	-- AuctionCategories
-	AuctionCategories[3].subCategories[5] = AuctionCategories[7].subCategories[1]
-	AuctionCategories[3].subCategories[6] = AuctionCategories[7].subCategories[2]
+	local template = AuctionCategories
+	template[3].subCategories[5] = AuctionCategories[7].subCategories[1]
+	template[3].subCategories[6] = template[7].subCategories[2]
 	local categories = {1, 2, 6, 3, 4, 5, 9, 8, 10}
 	
 	for a, b in pairs(categories) do
-		categories[a] = AuctionCategories[b]
+		categories[a] = template[b]
 	end
 	
-	AuctionCategories = categories
-	AuctionCategories[3].name = "Projectiles"
-	AuctionCategories[4].name = "Containers"
-	AuctionCategories[5].name = "Consumables"
-	AuctionCategories[7].name = "Reagents"
-	AuctionCategories[8].name = "Recipes"
+	template = categories
+	template[3].name = "Projectiles"
+	template[4].name = "Containers"
+	template[5].name = "Consumables"
+	template[7].name = "Reagents"
+	template[8].name = "Recipes"
 	
 	-- Weapons
 	local subCategories = {8, 9, 1, 2, 5, 6, 13, 11, 7, 10, 3, 15, 4, 16, 14, 17, 12}
 	
 	for a, b in pairs(subCategories) do
-		subCategories[a] = AuctionCategories[1].subCategories[b]
+		subCategories[a] = template[1].subCategories[b]
 	end
 	
-	AuctionCategories[1].filters = {{["classID"] = 2}}
-	AuctionCategories[1].subCategories = subCategories
-	AuctionCategories[1].subCategories[15].name = "Thrown Weapons"
-	AuctionCategories[1].subCategories[16].name = "Fishing Poles"
+	template[1].filters = {{["classID"] = 2}}
+	template[1].subCategories = subCategories
+	template[1].subCategories[15].name = "Thrown Weapons"
+	template[1].subCategories[16].name = "Fishing Poles"
 	
 	-- Armor
-	AuctionCategories[2].filters = {{["classID"] = 4}}
-	AuctionCategories[2].subCategories[10] = AuctionCategories[2].subCategories[9]
-	AuctionCategories[2].subCategories[9] = AuctionCategories[2].subCategories[7]
-	AuctionCategories[2].subCategories[7] = AuctionCategories[2].subCategories[1].subCategories[14]
+	template[2].filters = {{["classID"] = 4}}
+	template[2].subCategories[10] = template[2].subCategories[9]
+	template[2].subCategories[9] = template[2].subCategories[7]
+	template[2].subCategories[7] = template[2].subCategories[1].subCategories[14]
 	
 	-- Miscellaneous
-	AuctionCategories[2].subCategories[1].filters[3] = AuctionCategories[2].subCategories[2].filters[14]
-	AuctionCategories[2].subCategories[1].subCategories[3] = AuctionCategories[2].subCategories[2].subCategories[13]
+	template[2].subCategories[1].filters[3] = template[2].subCategories[2].filters[14]
+	template[2].subCategories[1].subCategories[3] = template[2].subCategories[2].subCategories[13]
 	
 	local filters = {}
 	local subCategories = {1, 2, 3, 4, 8, 11, 12}
 	
 	for a, b in pairs(subCategories) do
-		filters[a] = AuctionCategories[2].subCategories[1].filters[b]
-		subCategories[a] = AuctionCategories[2].subCategories[1].subCategories[b]
+		filters[a] = template[2].subCategories[1].filters[b]
+		subCategories[a] = template[2].subCategories[1].subCategories[b]
 	end
 	
-	AuctionCategories[2].subCategories[1].filters = filters
-	AuctionCategories[2].subCategories[1].subCategories = subCategories
-	AuctionCategories[2].subCategories[1].subCategories[4].name = "Shirts"
+	template[2].subCategories[1].filters = filters
+	template[2].subCategories[1].subCategories = subCategories
+	template[2].subCategories[1].subCategories[4].name = "Shirts"
 	
 	-- Cloth
 	local filters = {}
 	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
 	
 	for a, b in pairs(subCategories) do
-		filters[a] = AuctionCategories[2].subCategories[2].filters[b + 1]
-		subCategories[a] = AuctionCategories[2].subCategories[2].subCategories[b]
+		filters[a] = template[2].subCategories[2].filters[b + 1]
+		subCategories[a] = template[2].subCategories[2].subCategories[b]
 	end
 	
-	filters[9] = AuctionCategories[2].subCategories[2].filters[16]
-	AuctionCategories[2].subCategories[2].filters = filters
-	AuctionCategories[2].subCategories[2].subCategories = subCategories
-	AuctionCategories[2].subCategories[2].subCategories[2].name = "Shoulders"
-	AuctionCategories[2].subCategories[2].subCategories[4].name = "Wrists"
+	filters[9] = template[2].subCategories[2].filters[16]
+	template[2].subCategories[2].filters = filters
+	template[2].subCategories[2].subCategories = subCategories
+	template[2].subCategories[2].subCategories[2].name = "Shoulders"
+	template[2].subCategories[2].subCategories[4].name = "Wrists"
 	
 	-- Leather
 	local filters = {}
 	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
 	
 	for a, b in pairs(subCategories) do
-		filters[a] = AuctionCategories[2].subCategories[3].filters[b + 1]
-		subCategories[a] = AuctionCategories[2].subCategories[3].subCategories[b]
+		filters[a] = template[2].subCategories[3].filters[b + 1]
+		subCategories[a] = template[2].subCategories[3].subCategories[b]
 	end
 	
-	filters[9] = AuctionCategories[2].subCategories[3].filters[16]
-	AuctionCategories[2].subCategories[3].filters = filters
-	AuctionCategories[2].subCategories[3].subCategories = subCategories
-	AuctionCategories[2].subCategories[3].subCategories[2].name = "Shoulders"
-	AuctionCategories[2].subCategories[3].subCategories[4].name = "Wrists"
+	filters[9] = template[2].subCategories[3].filters[16]
+	template[2].subCategories[3].filters = filters
+	template[2].subCategories[3].subCategories = subCategories
+	template[2].subCategories[3].subCategories[2].name = "Shoulders"
+	template[2].subCategories[3].subCategories[4].name = "Wrists"
 	
 	-- Mail
 	local filters = {}
 	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
 	
 	for a, b in pairs(subCategories) do
-		filters[a] = AuctionCategories[2].subCategories[4].filters[b + 1]
-		subCategories[a] = AuctionCategories[2].subCategories[4].subCategories[b]
+		filters[a] = template[2].subCategories[4].filters[b + 1]
+		subCategories[a] = template[2].subCategories[4].subCategories[b]
 	end
 	
-	filters[9] = AuctionCategories[2].subCategories[4].filters[16]
-	AuctionCategories[2].subCategories[4].filters = filters
-	AuctionCategories[2].subCategories[4].subCategories = subCategories
-	AuctionCategories[2].subCategories[4].subCategories[2].name = "Shoulders"
-	AuctionCategories[2].subCategories[4].subCategories[4].name = "Wrists"
+	filters[9] = template[2].subCategories[4].filters[16]
+	template[2].subCategories[4].filters = filters
+	template[2].subCategories[4].subCategories = subCategories
+	template[2].subCategories[4].subCategories[2].name = "Shoulders"
+	template[2].subCategories[4].subCategories[4].name = "Wrists"
 	
 	-- Plate
 	local filters = {}
 	local subCategories = {1, 3, 5, 9, 10, 6, 7, 8}
 	
 	for a, b in pairs(subCategories) do
-		filters[a] = AuctionCategories[2].subCategories[5].filters[b + 1]
-		subCategories[a] = AuctionCategories[2].subCategories[5].subCategories[b]
+		filters[a] = template[2].subCategories[5].filters[b + 1]
+		subCategories[a] = template[2].subCategories[5].subCategories[b]
 	end
 	
-	filters[9] = AuctionCategories[2].subCategories[5].filters[16]
-	AuctionCategories[2].subCategories[5].filters = filters
-	AuctionCategories[2].subCategories[5].subCategories = subCategories
-	AuctionCategories[2].subCategories[5].subCategories[2].name = "Shoulders"
-	AuctionCategories[2].subCategories[5].subCategories[4].name = "Wrists"
+	filters[9] = template[2].subCategories[5].filters[16]
+	template[2].subCategories[5].filters = filters
+	template[2].subCategories[5].subCategories = subCategories
+	template[2].subCategories[5].subCategories[2].name = "Shoulders"
+	template[2].subCategories[5].subCategories[4].name = "Wrists"
 	
 	-- Projectiles
-	AuctionCategories[3].filters = {{["classID"] = 6}}
-	AuctionCategories[3].subCategories[1].name = "Arrows"
-	AuctionCategories[3].subCategories[2].name = "Bullets"
+	template[3].filters = {{["classID"] = 6}}
+	template[3].subCategories[1].name = "Arrows"
+	template[3].subCategories[2].name = "Bullets"
 	
 	-- Containers
 	local subCategories = {1, 3, 4, 2, 5, 6}
 	
 	for a, b in pairs(subCategories) do
-		subCategories[a] = AuctionCategories[4].subCategories[b]
+		subCategories[a] = template[4].subCategories[b]
 	end
 	
-	AuctionCategories[4].filters = {
+	template[4].filters = {
 		{["classID"] = 1},
 		{["classID"] = 11}
 	}
 	
-	AuctionCategories[4].subCategories = subCategories
-	AuctionCategories[4].subCategories[1].name = "Bags"
-	AuctionCategories[4].subCategories[2].name = "Herb Bags"
-	AuctionCategories[4].subCategories[3].name = "Enchanting Bags"
-	AuctionCategories[4].subCategories[4].name = "Soul Bags"
-	AuctionCategories[4].subCategories[5].name = "Quivers"
-	AuctionCategories[4].subCategories[6].name = "Ammo Pouches"
+	template[4].subCategories = subCategories
+	template[4].subCategories[1].name = "Bags"
+	template[4].subCategories[2].name = "Herb Bags"
+	template[4].subCategories[3].name = "Enchanting Bags"
+	template[4].subCategories[4].name = "Soul Bags"
+	template[4].subCategories[5].name = "Quivers"
+	template[4].subCategories[6].name = "Ammo Pouches"
 	
 	-- Recipes
 	local subCategories = {1, 3, 2, 5, 4, 9, 7, 10, 8, 6}
 	
 	for a, b in pairs(subCategories) do
-		subCategories[a] = AuctionCategories[8].subCategories[b]
+		subCategories[a] = template[8].subCategories[b]
 	end
 	
-	AuctionCategories[8].filters = {{["classID"] = 9}}
-	AuctionCategories[8].subCategories = subCategories
-	AuctionCategories[8].subCategories[1].name = "Books"
+	template[8].filters = {{["classID"] = 9}}
+	template[8].subCategories = subCategories
+	template[8].subCategories[1].name = "Books"
 	
 	-- Miscellaneous
-	AuctionCategories[9].filters = {
+	template[9].filters = {
 		{["classID"] = 15},
 		{["classID"] = 3},
 		{["classID"] = 8},
@@ -347,6 +348,7 @@ local function Setup()
 		{["classID"] = 14}
 	}
 	
+	AuctionCategories = template
 	AuctionFrameFilters_Update()
 	
 	-- BrowseFilterScrollFrameScrollBar
@@ -436,9 +438,7 @@ local function Setup()
 		local template = browseButtonN:GetScript("OnClick")
 		browseButtonN:SetScript("OnClick", function(self, button, down)
 			UIErrorsFrame:UnregisterEvent("UI_ERROR_MESSAGE")
-			
 			template(self, button, down)
-			
 			UIErrorsFrame:RegisterEvent("UI_ERROR_MESSAGE")
 		end)
 		
@@ -466,9 +466,7 @@ local function Setup()
 		local template = browseButtonNItem:GetScript("OnClick")
 		browseButtonNItem:SetScript("OnClick", function(self, button, down)
 			UIErrorsFrame:UnregisterEvent("UI_ERROR_MESSAGE")
-			
 			template(self, button, down)
-			
 			UIErrorsFrame:RegisterEvent("UI_ERROR_MESSAGE")
 		end)
 		
@@ -601,9 +599,45 @@ local function Setup()
 	getAll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 80, -41)
 	getAll:SetSize(80, 22)
 	getAll:SetText("GetAll")
+	
+	local function GetAllTicker()
+		getAll:Disable()
+		local state_getAll
+		local delta
+		local remainder
+		local AuctionHere_data = AuctionHere_data
+		
+		local ticker = 	C_Timer_NewTicker(0.1, function()
+			local state_getAll = AuctionHere_data.state.getAll
+			
+			if state_getAll then
+				delta = GetServerTime() - state_getAll
+				
+				if delta < 901 then
+					delta = 900 - delta
+					remainder = delta % 60
+					
+					if remainder < 10 then
+						getAll:SetText(math_floor(delta / 60) .. ":0" .. remainder)
+					else
+						getAll:SetText(math_floor(delta / 60) .. ":" .. remainder)
+					end
+				else
+					getAll:SetText("GetAll")
+					
+					if select(2, CanSendAuctionQuery()) then
+						AuctionHere_data.state.getAll = nil
+						getAll:Enable()
+						ticker:Cancel()
+					end
+				end
+			end
+		end)
+	end
+	
 	local ticker
 	getAll:SetScript("OnClick", function(self)
-		self:Disable()
+		GetAllTicker()
 		
 		AuctionFrameTab1:Disable()
 		AuctionFrameTab2:Disable()
@@ -624,42 +658,24 @@ local function Setup()
 		GetAll()
 	end)
 	
+	local AuctionHere_data = AuctionHere_data
+	
 	if select(2, CanSendAuctionQuery()) then
-		local AuctionHere_data = AuctionHere_data
-		AuctionHere_data.state.getAll = 0
-	end
-	
-	local state_getAll
-	local delta
-	local remainder
-	
-	C_Timer_NewTicker(0.1, function()
-		local AuctionHere_data = AuctionHere_data
-		state_getAll = AuctionHere_data.state.getAll
-		
-		if state_getAll then
-			delta = GetServerTime() - state_getAll
+		AuctionHere_data.state.getAll = nil
+	else
+		if AuctionHere_data.state.getAll then
+			GetAllTicker()
+		else
+			getAll:Disable()
 			
-			if delta < 901 then
-				getAll:Disable()
-				delta = 900 - delta
-				remainder = delta % 60
-				
-				if remainder < 10 then
-					getAll:SetText(math_floor(delta / 60) .. ":0" .. remainder)
-				else
-					getAll:SetText(math_floor(delta / 60) .. ":" .. remainder)
-				end
-			else
-				getAll:SetText("GetAll")
-				
+			local ticker = C_Timer_NewTicker(0.1, function()
 				if select(2, CanSendAuctionQuery()) then
-					AuctionHere_data.state.getAll = nil
 					getAll:Enable()
+					ticker:Cancel()
 				end
-			end
+			end)
 		end
-	end)
+	end
 	
 	-- AuctionHere_Clear
 	local clear = CreateFrame("Button", "AuctionHere_Clear", container, "UIPanelButtonTemplate")
@@ -667,79 +683,6 @@ local function Setup()
 	clear:SetSize(80, 22)
 	clear:SetText("Clear")
 	clear:SetScript("OnClick", Clear)
-	
-	for a = 1, 18 do
-		-- AuctionHere_ItemN
-		local itemN = CreateFrame("Button", "AuctionHere_Item" .. a, container)
-		itemN:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 188, -85 - 17 * a)
-		itemN:SetSize(634, 19)
-		itemN:SetScript("OnMouseWheel", function(_, delta)
-			AuctionHere_Slider:SetValue(AuctionHere_Slider:GetValue() - delta * 9)
-		end)
-		
-		-- AuctionHere_ItemNTexture
-		local itemNTexture = itemN:CreateTexture("AuctionHere_Item" .. a .. "Texture", "BACKGROUND")
-		itemNTexture:SetPoint("TOPLEFT", itemN, "TOPLEFT", 0, 0)
-		itemNTexture:SetSize(634, 19)
-		itemNTexture:SetTexture("Interface\\AuctionFrame\\UI-AuctionItemNameFrame")
-		itemNTexture:SetTexCoord(0.078125, 0.75, 0, 1)
-		
-		-- AuctionHere_ItemNIcon
-		
-		-- AuctionHere_ItemNName
-		local itemNName = itemN:CreateFontString("AuctionHere_Item" .. a .. "Name")
-		itemNName:SetPoint("LEFT", itemN, "LEFT", 4, 0)
-		itemNName:SetFont("Fonts\\FRIZQT__.TTF", 10)
-		itemNName:SetShadowOffset(1, -1)
-		
-		-- AuctionHere_ItemNCount
-		local itemNNCount = itemN:CreateFontString("AuctionHere_Item" .. a .. "Count")
-		itemNNCount:SetPoint("RIGHT", itemN, "RIGHT", -276, 0)
-		itemNNCount:SetFont("Fonts\\FRIZQT__.TTF", 10)
-		itemNNCount:SetShadowOffset(1, -1)
-		
-		-- AuctionHere_ItemNDuration
-		local itemNDuration = itemN:CreateFontString("AuctionHere_Item" .. a .. "Duration")
-		itemNDuration:SetPoint("RIGHT", itemN, "RIGHT", -218, 0)
-		itemNDuration:SetFont("Fonts\\FRIZQT__.TTF", 10)
-		itemNDuration:SetShadowOffset(1, -1)
-		
-		-- AuctionHere_ItemNBid
-		local itemNBid = itemN:CreateFontString("AuctionHere_Item" .. a .. "Bid")
-		itemNBid:SetPoint("RIGHT", itemN, "RIGHT", -133, 0)
-		itemNBid:SetFont("Fonts\\FRIZQT__.TTF", 10)
-		itemNBid:SetShadowOffset(1, -1)
-		
-		-- AuctionHere_ItemNBuyout
-		local itemNBuyout = itemN:CreateFontString("AuctionHere_Item" .. a .. "Buyout")
-		itemNBuyout:SetPoint("RIGHT", itemN, "RIGHT", -48, 0)
-		itemNBuyout:SetFont("Fonts\\FRIZQT__.TTF", 10)
-		itemNBuyout:SetShadowOffset(1, -1)
-		
-		-- AuctionHere_ItemNPercent
-		local itemNPercent = itemN:CreateFontString("AuctionHere_Item" .. a .. "Percent")
-		itemNPercent:SetPoint("RIGHT", itemN, "RIGHT", -19, 0)
-		itemNPercent:SetFont("Fonts\\FRIZQT__.TTF", 10)
-		itemNPercent:SetShadowOffset(1, -1)
-	end
-	
-	-- AuctionHere_Slider
-	local slider = CreateFrame("Slider", "AuctionHere_Slider", container, "UIPanelScrollBarTemplate")
-	slider:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 804, -120)
-	slider:SetSize(18, 273)
-	slider:SetValueStep(1)
-	slider:SetObeyStepOnDrag(true)
-	slider:SetFrameStrata("HIGH")
-	
-	-- AuctionHere_SliderScrollUpButton
-	AuctionHere_SliderScrollUpButton:SetScript("OnClick", function()
-		slider:SetValue(slider:GetValue() - 9)
-	end)
-	
-	-- AuctionHere_SliderScrollDownButton
-	AuctionHere_SliderScrollDownButton:SetScript("OnClick", function()
-		slider:SetValue(slider:GetValue() + 9)
-	end)
 	
 	-- AuctionHere_BuyTab
 	local buyTab = CreateFrame("Button", "AuctionHere_BuyTab", container, "AuctionClassButtonTemplate")
@@ -813,41 +756,305 @@ local function Setup()
 	-- AuctionHere_Buy
 	local buy = CreateFrame("Frame", "AuctionHere_Buy", container)
 	
-	-- AuctionHere_NameSort
-	local nameSort = CreateFrame("Button", "AuctionHere_NameSort", buy, "AuctionSortButtonTemplate")
-	nameSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 184, -82)
-	nameSort:SetSize(336, 19)
-	nameSort:SetText("Name")
+	-- AuctionHere_BuyFiltersText
+	local buyFiltersText = buy:CreateFontString("AuctionHere_BuyFiltersText")
+	buyFiltersText:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 69, -85)
+	buyFiltersText:SetFont("Fonts\\FRIZQT__.TTF", 10)
+	buyFiltersText:SetShadowOffset(1, -1)
+	buyFiltersText:SetText("Filters")
 	
-	-- AuctionHere_CountSort
-	local countSort = CreateFrame("Button", "AuctionHere_CountSort", buy, "AuctionSortButtonTemplate")
-	countSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 518, -82)
-	countSort:SetSize(31, 19)
-	countSort:SetText("#")
+	-- AuctionHere_BuyFiltersBackground
+	local buyFiltersBackground = CreateFrame("ScrollFrame", "AuctionHere_BuyFiltersBackground", buy)
+	buyFiltersBackground:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 25, -106)
+	buyFiltersBackground:SetSize(150, 266)
+	buyFiltersBackground:SetBackdrop({
+		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+		edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+		tile = false,
+		tileSize = 0,
+		edgeSize = 2,
+		insets = {
+			left = 0,
+			right = 0,
+			top = 0,
+			bottom = 0
+		}
+	})
+	buyFiltersBackground:SetBackdropColor(0, 0.168, 0.211)
+	buyFiltersBackground:SetBackdropBorderColor(0.025, 0.025, 0.025)
+	buyFiltersBackground:SetScript("OnMouseDown", function()
+		AuctionHere_BuyFilters:SetFocus()
+	end)
 	
-	-- AuctionHere_DurationSort
-	local durationSort = CreateFrame("Button", "AuctionHere_DurationSort", buy, "AuctionSortButtonTemplate")
-	durationSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 547, -82)
-	durationSort:SetSize(60, 19)
-	durationSort:SetText("Duration")
+	buyFiltersBackground:SetScript("OnMouseWheel", function(_, delta)
+		AuctionHere_BuyFiltersScroll:SetVerticalScroll(math_min(math_max(AuctionHere_BuyFiltersScroll:GetVerticalScroll() - delta * 10, 0), AuctionHere_BuyFiltersScroll:GetVerticalScrollRange()))
+	end)
 	
-	-- AuctionHere_BidSort
-	local bidSort = CreateFrame("Button", "AuctionHere_BidSort", buy, "AuctionSortButtonTemplate")
-	bidSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 605, -82)
-	bidSort:SetSize(87, 19)
-	bidSort:SetText("Bid")
+	-- AuctionHere_BuyFiltersScroll
+	local buyFiltersScroll = CreateFrame("ScrollFrame", "AuctionHere_BuyFiltersScroll", buy)
+	buyFiltersScroll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 25, -106)
+	buyFiltersScroll:SetSize(150, 261)
 	
-	-- AuctionHere_BuyoutSort
-	local buyoutSort = CreateFrame("Button", "AuctionHere_BuyoutSort", buy, "AuctionSortButtonTemplate")
-	buyoutSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 690, -82)
-	buyoutSort:SetSize(87, 19)
-	buyoutSort:SetText("Buyout")
+	-- AuctionHere_BuyFilters
+	local buyFilters = CreateFrame("EditBox", "AuctionHere_BuyFilters", buy)
+	buyFilters:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 25, -106)
+	buyFilters:SetSize(150, 261)
+	buyFilters:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 10)
+	buyFilters:SetShadowOffset(1, -1)
+	buyFilters:SetTextColor(0.975, 0.975, 0.975)
+	buyFilters:SetTextInsets(5, 5, 4, 0)
+	buyFilters:SetMultiLine(true)
+	buyFilters:SetAutoFocus(false)
+	buyFiltersScroll:SetScrollChild(buyFilters)
 	
-	-- AuctionHere_PercentSort
-	local percentSort = CreateFrame("Button", "AuctionHere_PercentSort", buy, "AuctionSortButtonTemplate")
-	percentSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 775, -82)
-	percentSort:SetSize(31, 19)
-	percentSort:SetText("%")
+	-- AuctionHere_BuySearch
+	local buySearch = CreateFrame("Button", "AuctionHere_BuySearch", buy, "UIPanelButtonTemplate")
+	buySearch:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 58, -377)
+	buySearch:SetSize(80, 22)
+	buySearch:SetText("Search")
+	buySearch:SetScript("OnClick", function()
+		buyFilters:ClearFocus()
+		
+		local results = {}
+		local AuctionHere_data = AuctionHere_data
+		local snapshot = AuctionHere_data.snapshot or {}
+		
+		for a, b in pairs(snapshot) do
+			results[a] = a
+		end
+		
+		local indexA
+		local indexB
+		local prices = AuctionHere_data.prices["14 day median"]
+		
+		table_sort(results, function(a, b)
+			indexA = snapshot[a]
+			indexB = snapshot[b]
+			
+			return ((indexA[3] / indexA[1]) / (prices[indexA[6]][indexA[7]] or 1)) < ((indexB[3] / indexB[1]) / (prices[indexB[6]][indexB[7]] or 1))
+		end)
+		
+		addonTable.snapshot = results
+		AuctionHere_BuySlider:SetMinMaxValues(0, math_max(0, #results - 18))
+		AuctionHere_BuySlider:SetValue(1)
+		AuctionHere_BuySlider:SetValue(0)
+	end)
+	
+	-- AuctionHere_BuyNameSort
+	local buyNameSort = CreateFrame("Button", "AuctionHere_BuyNameSort", buy, "AuctionSortButtonTemplate")
+	buyNameSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 184, -82)
+	buyNameSort:SetSize(334, 19)
+	buyNameSort:SetText("Name")
+	
+	-- AuctionHere_BuyCountSort
+	local buyCountSort = CreateFrame("Button", "AuctionHere_BuyCountSort", buy, "AuctionSortButtonTemplate")
+	buyCountSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 516, -82)
+	buyCountSort:SetSize(31, 19)
+	buyCountSort:SetText("#")
+	
+	-- AuctionHere_BuyDurationSort
+	local buyDurationSort = CreateFrame("Button", "AuctionHere_BuyDurationSort", buy, "AuctionSortButtonTemplate")
+	buyDurationSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 545, -82)
+	buyDurationSort:SetSize(62, 19)
+	buyDurationSort:SetText("Duration")
+	
+	-- AuctionHere_BuyBidSort
+	local buyBidSort = CreateFrame("Button", "AuctionHere_BuyBidSort", buy, "AuctionSortButtonTemplate")
+	buyBidSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 605, -82)
+	buyBidSort:SetSize(87, 19)
+	buyBidSort:SetText("Bid")
+	
+	-- AuctionHere_BuyBuyoutSort
+	local buyBuyoutSort = CreateFrame("Button", "AuctionHere_BuyBuyoutSort", buy, "AuctionSortButtonTemplate")
+	buyBuyoutSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 690, -82)
+	buyBuyoutSort:SetSize(87, 19)
+	buyBuyoutSort:SetText("Buyout")
+	
+	-- AuctionHere_BuyPercentSort
+	local buyPercentSort = CreateFrame("Button", "AuctionHere_BuyPercentSort", buy, "AuctionSortButtonTemplate")
+	buyPercentSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 775, -82)
+	buyPercentSort:SetSize(31, 19)
+	buyPercentSort:SetText("%")
+	
+	for a = 1, 18 do
+		-- AuctionHere_BuyN
+		local buyN = CreateFrame("Button", "AuctionHere_Buy" .. a, buy)
+		buyN:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 188, -85 - 17 * a)
+		buyN:SetSize(634, 19)
+		buyN:SetScript("OnMouseWheel", function(_, delta)
+			AuctionHere_BuySlider:SetValue(AuctionHere_BuySlider:GetValue() - delta * 9)
+		end)
+		
+		-- AuctionHere_BuyNTexture
+		local buyNTexture = buyN:CreateTexture("AuctionHere_Buy" .. a .. "Texture", "BACKGROUND")
+		buyNTexture:SetPoint("TOPLEFT", buyN, "TOPLEFT", 0, 0)
+		buyNTexture:SetSize(634, 19)
+		buyNTexture:SetTexture("Interface\\AuctionFrame\\UI-AuctionItemNameFrame")
+		buyNTexture:SetTexCoord(0.078125, 0.75, 0, 1)
+		
+		-- AuctionHere_BuyNIcon
+		
+		-- AuctionHere_BuyNName
+		local buyNName = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Name")
+		buyNName:SetPoint("LEFT", buyN, "LEFT", 4, 0)
+		buyNName:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 12)
+		buyNName:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_BuyNCount
+		local buyNNCount = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Count")
+		buyNNCount:SetPoint("RIGHT", buyN, "RIGHT", -276, 0)
+		buyNNCount:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 12)
+		buyNNCount:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_BuyNDuration
+		local buyNDuration = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Duration")
+		buyNDuration:SetPoint("RIGHT", buyN, "RIGHT", -218, 0)
+		buyNDuration:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 12)
+		buyNDuration:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_BuyNBid
+		local buytNBid = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Bid")
+		buytNBid:SetPoint("RIGHT", buyN, "RIGHT", -133, 0)
+		buytNBid:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 12)
+		buytNBid:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_BuyNBuyout
+		local buyNBuyout = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Buyout")
+		buyNBuyout:SetPoint("RIGHT", buyN, "RIGHT", -48, 0)
+		buyNBuyout:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 12)
+		buyNBuyout:SetShadowOffset(1, -1)
+		
+		-- AuctionHere_BuyNPercent
+		local buyNPercent = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Percent")
+		buyNPercent:SetPoint("RIGHT", buyN, "RIGHT", -19, 0)
+		buyNPercent:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 12)
+		buyNPercent:SetShadowOffset(1, -1)
+	end
+	
+	-- AuctionHere_BuySlider
+	local buySlider = CreateFrame("Slider", "AuctionHere_BuySlider", buy, "UIPanelScrollBarTemplate")
+	buySlider:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 804, -120)
+	buySlider:SetSize(18, 273)
+	buySlider:SetValueStep(1)
+	buySlider:SetObeyStepOnDrag(true)
+	buySlider:SetFrameStrata("HIGH")
+	buySlider:SetMinMaxValues(0, 0)
+	addonTable.snapshot = {}
+	local results
+	buySlider:SetScript("OnValueChanged", function(_, value)
+		results = addonTable.snapshot
+		local position = math_min(#results, 18)
+		local AuctionHere_data = AuctionHere_data
+		local prices = AuctionHere_data.prices["14 day median"]
+		local snapshot = AuctionHere_data.snapshot
+		
+		for a = 1, position do
+			local index = a + value
+			local auction = snapshot[results[index]]
+			local ID = auction[6]
+			local _, link = GetItemInfo(ID)
+			local count = auction[1]
+			local bid = math_max(auction[2], math_ceil(auction[4] * 1.05))
+			local bidCopper = bid % 100
+			local bidSilver = math_floor(bid / 100) % 100
+			local bidGold = math_floor(bid / 10000)
+			local buyout = auction[3]
+			local buyoutCopper = buyout % 100
+			local buyoutSilver = math_floor(buyout / 100) % 100
+			local buyoutGold = math_floor(buyout / 10000)
+			local percent = math_ceil(((buyout / count) / (prices[ID][auction[7]] or 1)) * 100)
+			
+			if bidGold == 0 then
+				bidGold = ""
+				
+				if bidSilver == 0 then
+					bidSilver = ""
+				else
+					if bidCopper < 10 then
+						bidCopper = "0" .. bidCopper
+					end
+				end
+			else
+				if bidSilver < 10 then
+					bidSilver = "0" .. bidSilver
+				end
+				
+				if bidCopper < 10 then
+					bidCopper = "0" .. bidCopper
+				end
+			end
+			
+			if buyoutGold == 0 then
+				buyoutGold = ""
+				
+				if buyoutSilver == 0 then
+					buyoutSilver = ""
+				else
+					if buyoutCopper < 10 then
+						buyoutCopper = "0" .. buyoutCopper
+					end
+				end
+			else
+				if buyoutSilver < 10 then
+					buyoutSilver = "0" .. buyoutSilver
+				end
+				
+				if buyoutCopper < 10 then
+					buyoutCopper = "0" .. buyoutCopper
+				end
+			end
+			
+			if percent > 999 then
+				percent = 999
+			end
+			
+			if percent < 25 then
+				percent = "|cffff8000" .. percent .. "|r"
+			elseif percent < 50 then
+				percent = "|cffa335ee" .. percent .. "|r"
+			elseif percent < 75 then
+				percent = "|cff1eff00" .. percent .. "|r"
+			elseif percent < 100 then
+				percent = "|cffffffff" .. percent .. "|r"
+			elseif percent < 125 then
+				percent = "|cff9d9d9d" .. percent .. "|r"
+			elseif percent < 150 then
+				percent = "|cff996600" .. percent .. "|r"
+			elseif percent < 175 then
+				percent = "|cffffff00" .. percent .. "|r"
+			elseif percent < 200 then
+				percent = "|cffff5050" .. percent .. "|r"
+			else
+				percent = "|cffff0000" .. percent .. "|r"
+			end
+			
+			local name = "AuctionHere_Buy" .. a
+			
+			_G[name .. "Name"]:SetText(link or "")
+			_G[name .. "Count"]:SetText(count)
+			_G[name .. "Duration"]:SetText("N/A")
+			_G[name .. "Bid"]:SetText("|cffffd100" .. bidGold .. " |cffe6e6e6" .. bidSilver .. " |cffc8602c" .. bidCopper .. "|r")
+			_G[name .. "Buyout"]:SetText("|cffffd100" .. buyoutGold .. " |cffe6e6e6" .. buyoutSilver .. " |cffc8602c" .. buyoutCopper .. "|r")
+			_G[name .. "Percent"]:SetText(percent)
+			_G[name]:Show()
+		end
+		
+		for a = position + 1, 18 do
+			_G["AuctionHere_Buy" .. a]:Hide()
+		end
+	end)
+	
+	buySlider:SetValue(0)
+	
+	-- AuctionHere_BuySliderScrollUpButton
+	AuctionHere_BuySliderScrollUpButton:SetScript("OnClick", function()
+		buySlider:SetValue(buySlider:GetValue() - 1)
+	end)
+	
+	-- AuctionHere_BuySliderScrollDownButton
+	AuctionHere_BuySliderScrollDownButton:SetScript("OnClick", function()
+		buySlider:SetValue(buySlider:GetValue() + 1)
+	end)
 	
 	-------------------------------------------------------------------------------
 	-- AuctionHere Sell
@@ -890,88 +1097,6 @@ local function Setup()
 		UpdateAddOnMemoryUsage()
 		notice:SetText("This tab is in development, so use it with caution.\n" .. math_floor(GetFramerate()) .. " fps\nAuctionHere memory: " .. math_floor(GetAddOnMemoryUsage("AuctionHere")) .. " KB")
 	end)
-	
-	local math_ceil = math.ceil
-	local table_sort = table.sort
-	local snapshot = AuctionHere_data.snapshot
-	local prices = AuctionHere_data.prices["14 day median"]
-	
-	table_sort(snapshot, function(a, b)
-		return ((a[3] / a[1]) / (prices[a[6]][a[7]] or 1)) < ((b[3] / b[1]) / (prices[b[6]][b[7]] or 1))
-	end)
-	
-	slider:SetScript("OnValueChanged", function(_, value)
-		local position = math_min(#snapshot, 18)
-		
-		for a = 1, position do
-			local index = a + value
-			local auction = snapshot[index]
-			local ID = auction[6]
-			local _, link = GetItemInfo(ID)
-			local count = auction[1]
-			local bid = math_ceil(math_max(auction[2], auction[4]) * 1.05)
-			local bidCopper = bid % 100
-			local bidSilver = math_floor(bid / 100) % 100
-			local buyout = auction[3]
-			local buyoutCopper = buyout % 100
-			local buyoutSilver = math_floor(buyout / 100) % 100
-			local percent = math_ceil(((buyout / count) / (prices[ID][auction[7]] or 1)) * 100)
-			
-			if bidCopper < 10 then
-				bidCopper = "0" .. bidCopper
-			end
-			
-			if bidSilver < 10 then
-				bidSilver = "0" .. bidSilver
-			end
-			
-			if buyoutCopper < 10 then
-				buyoutCopper = "0" .. buyoutCopper
-			end
-			
-			if buyoutSilver < 10 then
-				buyoutSilver = "0" .. buyoutSilver
-			end
-			
-			if percent > 999 then
-				percent = 999
-			end
-			
-			if percent < 25 then
-				percent = "|cffff8000" .. percent .. "|r"
-			elseif percent < 50 then
-				percent = "|cffa335ee" .. percent .. "|r"
-			elseif percent < 75 then
-				percent = "|cff1eff00" .. percent .. "|r"
-			elseif percent < 100 then
-				percent = "|cffffffff" .. percent .. "|r"
-			elseif percent < 125 then
-				percent = "|cff9d9d9d" .. percent .. "|r"
-			elseif percent < 150 then
-				percent = "|cff996600" .. percent .. "|r"
-			elseif percent < 175 then
-				percent = "|cffffff00" .. percent .. "|r"
-			elseif percent < 200 then
-				percent = "|cffff5050" .. percent .. "|r"
-			else
-				percent = "|cffff0000" .. percent .. "|r"
-			end
-			
-			_G["AuctionHere_Item" .. a .. "Name"]:SetText(link or "")
-			_G["AuctionHere_Item" .. a .. "Count"]:SetText(count)
-			_G["AuctionHere_Item" .. a .. "Duration"]:SetText("N/A")
-			_G["AuctionHere_Item" .. a .. "Bid"]:SetText("|cffffd100" .. math_floor(bid / 10000) .. " |cffe6e6e6" .. bidSilver .. " |cffc8602c" .. bidCopper .. "|r")
-			_G["AuctionHere_Item" .. a .. "Buyout"]:SetText("|cffffd100" .. math_floor(buyout / 10000) .. " |cffe6e6e6" .. buyoutSilver .. " |cffc8602c" .. buyoutCopper .. "|r")
-			_G["AuctionHere_Item" .. a .. "Percent"]:SetText(percent)
-		end
-		
-		for a = position + 1, 18 do
-			_G["AuctionHere_Item" .. a]:Hide()
-		end
-	end)
-	
-	slider:SetMinMaxValues(0, math_max(0, #snapshot - 18))
-	slider:SetValue(0)
 end
 
 addonTable.Setup = Setup
