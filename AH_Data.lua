@@ -1,10 +1,10 @@
 
 local _, addonTable = ...
 
-local C_Timer_After = C_Timer.After
 local math_floor = math.floor
 local math_ceil = math.ceil
 local math_min = math.min
+local math_max = math.max
 local string_match = string.match
 local string_gmatch = string.gmatch
 local string_gsub = string.gsub
@@ -13,10 +13,12 @@ local table_concat = table.concat
 local pairs = pairs
 local tonumber = tonumber
 local collectgarbage = collectgarbage
+local coroutine_yield = coroutine.yield
 
 local wipe = wipe
 local debugprofilestop = debugprofilestop
 local GetServerTime = GetServerTime
+local GetItemInfo = GetItemInfo
 local CanSendAuctionQuery = CanSendAuctionQuery
 local GetNumAuctionItems = GetNumAuctionItems
 local GetAuctionItemInfo = GetAuctionItemInfo
@@ -39,12 +41,210 @@ do
 		wipe(prices)
 		wipe(snapshot)
 		collectgarbage()
+		
+		addonTable.status = "Data cleared"
 	end
 	
 	addonTable.Clear = Clear
 end
 
 do
+	local results
+	local snapshot
+	local prices
+	local indexA
+	local indexB
+	local priceA
+	local priceB
+	
+	local function Sort(criteria, invert, price)
+		results = addonTable.snapshot
+		local AuctionHere_data = AuctionHere_data
+		snapshot = AuctionHere_data.snapshot
+		
+		if criteria == 1 then
+			-- Name
+			if invert then
+				table_sort(results, function(a, b)
+					return (GetItemInfo(snapshot[a][6]) or "") > (GetItemInfo(snapshot[b][6]) or "")
+				end)
+			else
+				table_sort(results, function(a, b)
+					return (GetItemInfo(snapshot[a][6]) or "") < (GetItemInfo(snapshot[b][6]) or "")
+				end)
+			end
+		elseif criteria == 2 then
+			-- Count
+			if invert then
+				table_sort(results, function(a, b)
+					return snapshot[a][1] > snapshot[b][1]
+				end)
+			else
+				table_sort(results, function(a, b)
+					return snapshot[a][1] < snapshot[b][1]
+				end)
+			end
+		elseif criteria == 3 then
+			-- Duration
+			if invert then
+				table_sort(results, function(a, b)
+					return (snapshot[a][8] or 5) > (snapshot[b][8] or 5)
+				end)
+			else
+				table_sort(results, function(a, b)
+					return (snapshot[a][8] or 5) < (snapshot[b][8] or 5)
+				end)
+			end
+		elseif criteria == 4 then
+			-- Bid
+			if invert then
+				table_sort(results, function(a, b)
+					indexA = snapshot[a]
+					indexB = snapshot[b]
+					
+					priceA = indexA[2]
+					priceB = indexB[2]
+					
+					if priceA == 0 then
+						priceA = indexA[3]
+					else
+						priceA = math_max(priceA, math_ceil(indexA[4] * 1.05))
+					end
+					
+					if priceB == 0 then
+						priceB = indexB[3]
+					else
+						priceB = math_max(priceB, math_ceil(indexB[4] * 1.05))
+					end
+					
+					return priceA > priceB
+				end)
+			else
+				table_sort(results, function(a, b)
+					indexA = snapshot[a]
+					indexB = snapshot[b]
+					
+					priceA = indexA[2]
+					priceB = indexB[2]
+					
+					if priceA == 0 then
+						priceA = indexA[3]
+					else
+						priceA = math_max(priceA, math_ceil(indexA[4] * 1.05))
+					end
+					
+					if priceB == 0 then
+						priceB = indexB[3]
+					else
+						priceB = math_max(priceB, math_ceil(indexB[4] * 1.05))
+					end
+					
+					return priceA < priceB
+				end)
+			end
+		elseif criteria == 5 then
+			-- Buyout
+			if invert then
+				table_sort(results, function(a, b)
+					return snapshot[a][3] > snapshot[b][3]
+				end)
+			else
+				table_sort(results, function(a, b)
+					priceA = snapshot[a][3]
+					priceB = snapshot[b][3]
+					
+					if priceA == 0 then
+						priceA = 12345678901
+					end
+					
+					if priceB == 0 then
+						priceB = 12345678901
+					end
+					
+					return priceA < priceB
+				end)
+			end
+		elseif criteria == 6 then
+			-- Bid Percent
+			prices = AuctionHere_data.prices[price]
+			
+			if invert then
+				table_sort(results, function(a, b)
+					indexA = snapshot[a]
+					indexB = snapshot[b]
+					
+					priceA = indexA[2]
+					priceB = indexB[2]
+					
+					if priceA == 0 then
+						priceA = indexA[3]
+					end
+					
+					if priceB == 0 then
+						priceB = indexB[3]
+					end
+					
+					return ((priceA / indexA[1]) / (prices[indexA[6]][indexA[7]] or 1)) > ((priceB / indexB[1]) / (prices[indexB[6]][indexB[7]] or 1))
+				end)
+			else
+				table_sort(results, function(a, b)
+					indexA = snapshot[a]
+					indexB = snapshot[b]
+					
+					priceA = indexA[2]
+					priceB = indexB[2]
+					
+					if priceA == 0 then
+						priceA = indexA[3]
+					end
+					
+					if priceB == 0 then
+						priceB = indexB[3]
+					end
+					
+					return ((priceA / indexA[1]) / (prices[indexA[6]][indexA[7]] or 1)) < ((priceB / indexB[1]) / (prices[indexB[6]][indexB[7]] or 1))
+				end)
+			end
+		elseif criteria == 7 then
+			-- Buyout Percent
+			prices = AuctionHere_data.prices[price]
+			
+			if invert then
+				table_sort(results, function(a, b)
+					indexA = snapshot[a]
+					indexB = snapshot[b]
+					
+					return ((indexA[3] / indexA[1]) / (prices[indexA[6]][indexA[7]] or 1)) > ((indexB[3] / indexB[1]) / (prices[indexB[6]][indexB[7]] or 1))
+				end)
+			else
+				table_sort(results, function(a, b)
+					indexA = snapshot[a]
+					indexB = snapshot[b]
+					
+					priceA = indexA[3]
+					priceB = indexB[3]
+					
+					if priceA == 0 then
+						priceA = 12345678901
+					end
+					
+					if priceB == 0 then
+						priceB = 12345678901
+					end
+					
+					return ((priceA / indexA[1]) / (prices[indexA[6]][indexA[7]] or 1)) < ((priceB / indexB[1]) / (prices[indexB[6]][indexB[7]] or 1))
+				end)
+			end
+		end
+	end
+	
+	addonTable.Sort = Sort
+end
+
+do
+	local throttle
+	local settings_iterations
+	
 	local UpdatePrices
 	
 	do
@@ -64,6 +264,7 @@ do
 		-- Calculate prices for each enabled price source
 		UpdatePrices = function()
 			stamp = GetServerTime()
+			addonTable.status = "Updating prices"
 			local AuctionHere_data = AuctionHere_data
 			prices = AuctionHere_data.prices
 			
@@ -77,11 +278,11 @@ do
 				values = settings_prices[a]
 				
 				if values[1] then
-					-- itemLinks only for now
 					local buyouts = {}
 					range = stamp - values[2] * 86400
 					excluded = values[3]
 					included = values[4]
+					throttle = 0
 					
 					for b, c in pairs(scans) do
 						if (b > range and not excluded[b]) or included[b] then
@@ -118,6 +319,12 @@ do
 									end
 									
 									link[1] = index
+									
+									throttle = throttle + 1
+									
+									if throttle % settings_iterations == 0 then
+										coroutine_yield()
+									end
 								end
 							end
 						end
@@ -158,6 +365,12 @@ do
 								else
 									c[d] = nil
 								end
+								
+								throttle = throttle + 1
+								
+								if throttle % settings_iterations == 0 then
+									coroutine_yield()
+								end
 							end
 						end
 					elseif range == 2 then
@@ -180,6 +393,12 @@ do
 									c[d] = math_ceil(excluded / included)
 								else
 									c[d] = nil
+								end
+								
+								throttle = throttle + 1
+								
+								if throttle % settings_iterations == 0 then
+									coroutine_yield()
 								end
 							end
 						end
@@ -230,6 +449,12 @@ do
 								end
 								
 								c[d] = range
+								
+								throttle = throttle + 1
+								
+								if throttle % settings_iterations == 0 then
+									coroutine_yield()
+								end
 							end
 						end
 					end
@@ -240,7 +465,7 @@ do
 			
 			collectgarbage()
 			
-			print("Finished the getall search, scanning, saving and updating prices")
+			addonTable.status = "Scan complete"
 		end
 	end
 	
@@ -260,6 +485,7 @@ do
 		
 		-- Save the scanned data to disk
 		Save = function()
+			addonTable.status = "Saving data"
 			values = {}
 			
 			for a = 1, total do
@@ -285,10 +511,15 @@ do
 				end
 				
 				link[6] = index
+				
+				if a % settings_iterations == 0 then
+					coroutine_yield()
+				end
 			end
 			
 			total = 0
 			auction = {}
+			throttle = 0
 			
 			for a, b in pairs(values) do
 				total = total + 1
@@ -319,6 +550,12 @@ do
 						total = total + 1
 						auction[total] = index[ID]
 					end
+					
+					throttle = throttle + 1
+					
+					if throttle % settings_iterations == 0 then
+						coroutine_yield()
+					end
 				end
 			end
 			
@@ -334,184 +571,169 @@ do
 			
 			collectgarbage()
 			
-			UpdatePrices()
+			addonTable.task = UpdatePrices
 		end
 	end
 	
 	do
-		local limit
 		local batch
-		local position
-		local iterations
 		local index
 		local indices
 		local _, count, bid, buyout, offer, seller, ID
 		local N_incomplete
 		local incomplete
+		local iterations
 		local segment
 		local complete
 		local attempts
-		
-		local ScanControl
-		
-		-- Recursively call GetAuctionItemLink on each auction
-		local function ScanLink()
-			limit = math_min(batch, position + iterations)
-			
-			for a = position, limit do
-				index = indices[a]
-				-- _, _, Color, Ltype, Id, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name
-				ID = GetAuctionItemLink("list", index)
-				
-				if ID then
-					-- item:itemId:enchantId:gemId1:gemId2:gemId3:gemId4:suffixId:uniqueId:linkLevel:specializationID:upgradeId:instanceDifficultyId:numBonusIds:bonusId1:bonusId2:upgradeValue
-					data[index][7] = string_gsub(ID, ".+m:%d-:(%d-):%d-:%d-:%d-:%d-(:%d*).+", "%1%2")
-				else
-					N_incomplete = N_incomplete + 1
-					incomplete[N_incomplete] = index
-				end
-			end
-			
-			if limit == batch then
-				if N_incomplete == 0 then
-					ScanControl()
-					
-					return
-				end
-				
-				if batch == N_incomplete then
-					if attempts * N_incomplete > 100000 then
-						print("ScanLink failed with " .. N_incomplete .. " auctions remaining")
-						
-						return
-					end
-					
-					attempts = attempts + 1
-				else
-					attempts = 1
-				end
-				
-				batch = N_incomplete
-				iterations = 10000
-				position = 1
-				indices = incomplete
-				N_incomplete = 0
-				incomplete = {}
-			else
-				position = limit + 1
-			end
-			
-			C_Timer_After(0, ScanLink)
-		end
-		
-		-- Recursively call GetAuctionItemInfo on each auction
-		local function ScanInfo()
-			limit = math_min(batch, position + iterations)
-			
-			for a = position, limit do
-				index = indices[a]
-				-- name, texture, count, quality, canUse, level, levelColHeader, minBid, minIncrement, buyoutPrice, bidAmount, highBidder, highBidderFullName, owner, ownerFullName, saleStatus, itemId, hasAllInfo
-				_, _, count, _, _, _, _, bid, _, buyout, offer, _, _, seller, _, _, ID = GetAuctionItemInfo("list", index)
-				
-				if seller and count and bid and buyout and offer and ID then
-					if bid == buyout then
-						bid = 0
-					end
-					
-					data[index] = {count, bid, buyout, offer, seller, ID}
-				else
-					N_incomplete = N_incomplete + 1
-					incomplete[N_incomplete] = index
-				end
-			end
-			
-			if limit == batch then
-				if N_incomplete == 0 then
-					batch = segment
-					position = 1
-					indices = complete
-					
-					-- GetAuctionItemTimeLeft is bugged; skip it
-					ScanLink()
-					
-					return
-				end
-				
-				if batch == N_incomplete then
-					if attempts * N_incomplete > 100000 then
-						print("ScanInfo failed with " .. N_incomplete .. " auctions remaining")
-						
-						return
-					end
-					
-					attempts = attempts + 1
-				else
-					attempts = 1
-				end
-				
-				batch = N_incomplete
-				position = 1
-				indices = incomplete
-				N_incomplete = 0
-				incomplete = {}
-			else
-				position = limit + 1
-			end
-			
-			C_Timer_After(0, ScanInfo)
-		end
+		local settings
+		local settings_attempts
 		
 		-- Scan the current auction house page
-		ScanControl = function()
-			batch = GetNumAuctionItems("list")
-			
-			if batch > total then
-				segment = batch - total
-				
-				for a = 1, segment do
-					indices[a] = total + a
-				end
-				
-				total = batch
-				batch = segment
-				position = 1
-				iterations = 1000
-				complete = indices
-				
-				ScanInfo()
-			else
-				if CanSendAuctionQuery() and GetNumAuctionItems("list") == total then
-					local AuctionHere_data = AuctionHere_data
-					AuctionHere_data.state.getAll = GetServerTime()
-					
-					Save()
-				else
-					C_Timer_After(0, ScanControl)
-				end
-			end
-		end
-		
-		-- Initialize the scanning resources
 		local function Scan()
+			-- Initialize scanning resources
 			stamp = GetServerTime()
+			addonTable.status = "Scanning"
 			indices = {}
 			data = {}
 			N_incomplete = 0
 			incomplete = {}
-			attempts = 1
 			total = 0
 			
-			ScanControl()
-		end
-		
-		-- Search the entire auction house at once
-		local function GetAll()
-			-- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
-			QueryAuctionItems("", nil, nil, 0, false, 0, true, false, nil)
+			local AuctionHere_data = AuctionHere_data
+			settings = AuctionHere_data.settings
+			settings_iterations = settings.iterations
+			settings_attempts = settings.attempts
 			
-			Scan()
+			while true do
+				batch = GetNumAuctionItems("list")
+				
+				if batch > total then
+					segment = batch - total
+					
+					for a = 1, segment do
+						indices[a] = total + a
+					end
+					
+					total = batch
+					batch = segment
+					iterations = settings_iterations
+					complete = indices
+					attempts = 1
+					
+					-- Call GetAuctionItemInfo on each auction
+					while true do
+						for a = 1, batch do
+							index = indices[a]
+							
+							-- name, texture, count, quality, canUse, level, levelColHeader, minBid, minIncrement, buyoutPrice, bidAmount, highBidder, highBidderFullName, owner, ownerFullName, saleStatus, itemId, hasAllInfo
+							_, _, count, _, _, _, _, bid, _, buyout, offer, _, _, seller, _, _, ID = GetAuctionItemInfo("list", index)
+							
+							if seller and count and bid and buyout and offer and ID then
+								if bid == buyout then
+									bid = 0
+								end
+								
+								data[index] = {count, bid, buyout, offer, seller, ID}
+							else
+								N_incomplete = N_incomplete + 1
+								incomplete[N_incomplete] = index
+							end
+							
+							if a % iterations == 0 then
+								coroutine_yield()
+							end
+						end
+						
+						coroutine_yield()
+						
+						if N_incomplete > 0 then
+							if batch == N_incomplete then
+								if attempts * N_incomplete > iterations * settings_attempts then
+									addonTable.status = "Scan failed with " .. N_incomplete .. " remaining"
+									
+									return
+								end
+								
+								attempts = attempts + 1
+							else
+								attempts = 1
+							end
+							
+							batch = N_incomplete
+							indices = incomplete
+							N_incomplete = 0
+							incomplete = {}
+						else
+							break
+						end
+					end
+					
+					batch = segment
+					indices = complete
+					attempts = 1
+					
+					-- GetAuctionItemTimeLeft is bugged; skip it
+					
+					-- Call GetAuctionItemLink on each auction
+					while true do
+						for a = 1, batch do
+							index = indices[a]
+							
+							-- _, _, Color, Ltype, Id, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name
+							ID = GetAuctionItemLink("list", index)
+							
+							if ID then
+								-- item:itemId:enchantId:gemId1:gemId2:gemId3:gemId4:suffixId:uniqueId:linkLevel:specializationID:upgradeId:instanceDifficultyId:numBonusIds:bonusId1:bonusId2:upgradeValue
+								data[index][7] = string_gsub(ID, ".+m:%d-:(%d-):%d-:%d-:%d-:%d-(:%d*).+", "%1%2")
+							else
+								N_incomplete = N_incomplete + 1
+								incomplete[N_incomplete] = index
+							end
+							
+							if a % iterations == 0 then
+								coroutine_yield()
+							end
+						end
+						
+						if N_incomplete > 0 then
+							if batch == N_incomplete then
+								if attempts * N_incomplete > iterations * settings_attempts then
+									addonTable.status = "Scan failed with " .. N_incomplete .. " remaining"
+									
+									return
+								end
+								
+								attempts = attempts + 1
+							else
+								attempts = 1
+							end
+							
+							batch = N_incomplete
+							indices = incomplete
+							N_incomplete = 0
+							incomplete = {}
+							iterations = settings_iterations * 10
+							
+							coroutine_yield()
+						else
+							break
+						end
+					end
+				end
+				
+				if CanSendAuctionQuery() and GetNumAuctionItems("list") == total then
+					break
+				else
+					coroutine_yield()
+				end
+			end
+			
+			AuctionHere_data.state.getAll = GetServerTime()
+			
+			addonTable.task = Save
 		end
 		
-		addonTable.GetAll = GetAll
+		addonTable.Scan = Scan
 	end
 end

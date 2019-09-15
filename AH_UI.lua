@@ -12,6 +12,9 @@ local function Setup()
 	local pairs = pairs
 	local select = select
 	local _G = _G
+	local coroutine_create = coroutine.create
+	local coroutine_resume = coroutine.resume
+	local coroutine_status = coroutine.status
 	
 	NUM_BROWSE_TO_DISPLAY = 10
 	AUCTIONS_BUTTON_HEIGHT = 30
@@ -41,8 +44,16 @@ local function Setup()
 	local BrowseResetButton_OnUpdate = addonTable.BrowseResetButton_OnUpdate
 	local BrowseSearchButton_OnUpdate = addonTable.BrowseSearchButton_OnUpdate
 	
-	local GetAll = addonTable.GetAll
+	local Scan = addonTable.Scan
 	local Clear = addonTable.Clear
+	local Sort = addonTable.Sort
+	
+	addonTable.task = nil
+	addonTable.status = ""
+	addonTable.snapshot = {}
+	addonTable.criteria = 7
+	addonTable.invert = false
+	addonTable.price = "14 day median"
 	
 	-- AuctionFrame
 	local point, relativeTo, relativePoint, x, y = AuctionFrame:GetPoint()
@@ -559,8 +570,8 @@ local function Setup()
 	
 	-- BidQualitySort
 	point, relativeTo, relativePoint, x, y = BidQualitySort:GetPoint()
-	BidQualitySort:SetPoint(point, relativeTo, relativePoint, x + 2, y)
-	BidQualitySort:SetWidth(193)
+	BidQualitySort:SetPoint(point, relativeTo, relativePoint, x + 3, y)
+	BidQualitySort:SetWidth(195-3)
 	
 	-- BidBidText
 	point, relativeTo, relativePoint, x, y = BidBidText:GetPoint()
@@ -578,9 +589,96 @@ local function Setup()
 	_, _, _, _, y = AuctionsTitle:GetPoint()
 	AuctionsTitle:SetPoint("TOP", AuctionFrame, "TOP", 0, y)
 	
+	-- AuctionsTabText
+	point, relativeTo, relativePoint, x, y = AuctionsTabText:GetPoint()
+	AuctionsTabText:SetPoint(point, relativeTo, relativePoint, x + 2, y)
+	
+	-- StartPrice
+	point, relativeTo, relativePoint, x, y = StartPrice:GetPoint()
+	StartPrice:SetPoint(point, relativeTo, relativePoint, x, y + 1)
+	
+	-- StartPriceGold
+	point, relativeTo, relativePoint, x, y = StartPriceGold:GetPoint()
+	StartPriceGold:SetPoint(point, relativeTo, relativePoint, x, y - 2)
+	
+	-- BuyoutPrice
+	point, relativeTo, relativePoint, x, y = BuyoutPrice:GetPoint()
+	BuyoutPrice:SetPoint(point, relativeTo, relativePoint, x, y + 1)
+	
+	-- BuyoutPriceGold
+	point, relativeTo, relativePoint, x, y = BuyoutPriceGold:GetPoint()
+	BuyoutPriceGold:SetPoint(point, relativeTo, relativePoint, x, y - 2)
+	
+	-- AuctionsDepositText
+	point, relativeTo, relativePoint, x, y = AuctionsDepositText:GetPoint()
+	AuctionsDepositText:SetPoint(point, relativeTo, relativePoint, x + 2, y + 2)
+	
 	-------------------------------------------------------------------------------
 	-- AuctionHere
 	-------------------------------------------------------------------------------
+	
+	local dependencies = {
+		AuctionHere_Clear,
+		AuctionHere_Search,
+		AuctionHere_BuyNameSort,
+		AuctionHere_BuyCountSort,
+		AuctionHere_BuyDurationSort,
+		AuctionHere_BuyBidSort,
+		AuctionHere_BuyBuyoutSort,
+		AuctionHere_BuyPercentSort
+	}
+	
+	local thread
+	
+	-- Scheduler
+	C_Timer_NewTicker(0, function()
+		if thread then
+			if coroutine_status(thread) == "dead" then
+				thread = nil
+				
+				if addonTable.task then
+					local template = addonTable.task
+					addonTable.task = nil
+					
+					thread = coroutine_create(template)
+					coroutine_resume(thread)
+				else
+					for a, b in pairs(dependencies) do
+						b:Enable()
+					end
+					
+					local AuctionHere_data = AuctionHere_data
+					
+					if not AuctionHere_data.state.getAll then
+						AuctionHere_GetAll:Enable()
+					end
+				end
+			else
+				coroutine_resume(thread)
+			end
+		else
+			if addonTable.task then
+				local template = addonTable.task
+				addonTable.task = nil
+				thread = coroutine_create(template)
+				
+				for a, b in pairs(dependencies) do
+					b:Disable()
+				end
+				
+				AuctionHere_GetAll:Disable()
+				coroutine_resume(thread)
+			end
+		end
+		
+		if addonTable.status then
+			if addonTable.status == AuctionHere_Status:GetText() then
+				addonTable.status = nil
+			else
+				AuctionHere_Status:SetText(addonTable.status)
+			end
+		end
+	end)
 	
 	-- AuctionHere_Container
 	local container = CreateFrame("Frame", "AuctionHere_Container", AuctionFrame)
@@ -594,21 +692,27 @@ local function Setup()
 	title:SetTextColor(1, 0.82, 0, 1)
 	title:SetText("AuctionHere")
 	
+	-- AuctionHere_Status
+	local status = container:CreateFontString("AuctionHere_Status")
+	status:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 76, -43)
+	status:SetFont("Fonts\\FRIZQT__.TTF", 10)
+	status:SetShadowOffset(1, -1)
+	
 	-- AuctionHere_GetAll
 	local getAll = CreateFrame("Button", "AuctionHere_GetAll", container, "UIPanelButtonTemplate")
-	getAll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 80, -41)
+	getAll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 183, -57)
 	getAll:SetSize(80, 22)
 	getAll:SetText("GetAll")
 	
 	local function GetAllTicker()
-		getAll:Disable()
 		local state_getAll
 		local delta
 		local remainder
 		local AuctionHere_data = AuctionHere_data
 		
-		local ticker = 	C_Timer_NewTicker(0.1, function()
-			local state_getAll = AuctionHere_data.state.getAll
+		local ticker
+		ticker = C_Timer_NewTicker(0.1, function()
+			state_getAll = AuctionHere_data.state.getAll
 			
 			if state_getAll then
 				delta = GetServerTime() - state_getAll
@@ -624,18 +728,20 @@ local function Setup()
 					end
 				else
 					getAll:SetText("GetAll")
+					AuctionHere_data.state.getAll = nil
+					ticker:Cancel()
 					
-					if select(2, CanSendAuctionQuery()) then
-						AuctionHere_data.state.getAll = nil
-						getAll:Enable()
-						ticker:Cancel()
-					end
+					ticker = C_Timer_NewTicker(0.1, function()
+						if select(2, CanSendAuctionQuery()) and (not thread) then
+							getAll:Enable()
+							ticker:Cancel()
+						end
+					end)
 				end
 			end
 		end)
 	end
 	
-	local ticker
 	getAll:SetScript("OnClick", function(self)
 		GetAllTicker()
 		
@@ -643,6 +749,7 @@ local function Setup()
 		AuctionFrameTab2:Disable()
 		AuctionFrameTab3:Disable()
 		
+		local ticker
 		ticker = C_Timer_NewTicker(0.1, function()
 			local AuctionHere_data = AuctionHere_data
 			
@@ -655,7 +762,10 @@ local function Setup()
 			end
 		end)
 		
-		GetAll()
+		-- QueryAuctionItems(name, minLevel, maxLevel, page, isUsable, qualityIndex, getAll, exactMatch, filterData)
+		QueryAuctionItems("", nil, nil, 0, false, 0, true, false, nil)
+		
+		addonTable.task = Scan
 	end)
 	
 	local AuctionHere_data = AuctionHere_data
@@ -663,13 +773,14 @@ local function Setup()
 	if select(2, CanSendAuctionQuery()) then
 		AuctionHere_data.state.getAll = nil
 	else
+		getAll:Disable()
+		
 		if AuctionHere_data.state.getAll then
 			GetAllTicker()
 		else
-			getAll:Disable()
-			
-			local ticker = C_Timer_NewTicker(0.1, function()
-				if select(2, CanSendAuctionQuery()) then
+			local ticker
+			ticker = C_Timer_NewTicker(0.1, function()
+				if select(2, CanSendAuctionQuery()) and (not thread) then
 					getAll:Enable()
 					ticker:Cancel()
 				end
@@ -679,74 +790,93 @@ local function Setup()
 	
 	-- AuctionHere_Clear
 	local clear = CreateFrame("Button", "AuctionHere_Clear", container, "UIPanelButtonTemplate")
-	clear:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 180, -41)
+	clear:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 265, -57)
 	clear:SetSize(80, 22)
 	clear:SetText("Clear")
 	clear:SetScript("OnClick", Clear)
 	
+	local containers = {
+		"AuctionHere_Buy",
+		"AuctionHere_Sell",
+		"AuctionHere_Lists",
+		"AuctionHere_Prices",
+		"AuctionHere_Settings"
+	}
+	
 	-- AuctionHere_BuyTab
 	local buyTab = CreateFrame("Button", "AuctionHere_BuyTab", container, "AuctionClassButtonTemplate")
 	buyTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 180, -413)
-	buyTab:SetSize(42, 20)
+	buyTab:SetSize(53, 20)
 	buyTab:SetText("Buy")
 	buyTab:LockHighlight()
 	buyTab:SetScript("OnClick", function(self)
-		AuctionHere_SellTab:UnlockHighlight()
-		AuctionHere_ListsTab:UnlockHighlight()
-		AuctionHere_PricesTab:UnlockHighlight()
-		AuctionHere_Sell:Hide()
-		AuctionHere_Lists:Hide()
-		AuctionHere_Prices:Hide()
+		for a, b in pairs(containers) do
+			_G[b]:Hide()
+			_G[b .. "Tab"]:UnlockHighlight()
+		end
+		
 		self:LockHighlight()
 		AuctionHere_Buy:Show()
 	end)
 	
 	-- AuctionHere_SellTab
 	local sellTab = CreateFrame("Button", "AuctionHere_SellTab", container, "AuctionClassButtonTemplate")
-	sellTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 222, -413)
-	sellTab:SetSize(42, 20)
+	sellTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 233, -413)
+	sellTab:SetSize(53, 20)
 	sellTab:SetText("Sell")
 	sellTab:SetScript("OnClick", function(self)
-		AuctionHere_BuyTab:UnlockHighlight()
-		AuctionHere_ListsTab:UnlockHighlight()
-		AuctionHere_PricesTab:UnlockHighlight()
-		AuctionHere_Buy:Hide()
-		AuctionHere_Lists:Hide()
-		AuctionHere_Prices:Hide()
+		for a, b in pairs(containers) do
+			_G[b]:Hide()
+			_G[b .. "Tab"]:UnlockHighlight()
+		end
+		
 		self:LockHighlight()
 		AuctionHere_Sell:Show()
 	end)
 	
 	-- AuctionHere_ListsTab
 	local listsTab = CreateFrame("Button", "AuctionHere_ListsTab", container, "AuctionClassButtonTemplate")
-	listsTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 264, -413)
-	listsTab:SetSize(42, 20)
+	listsTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 286, -413)
+	listsTab:SetSize(53, 20)
 	listsTab:SetText("Lists")
 	listsTab:SetScript("OnClick", function(self)
-		AuctionHere_BuyTab:UnlockHighlight()
-		AuctionHere_SellTab:UnlockHighlight()
-		AuctionHere_PricesTab:UnlockHighlight()
-		AuctionHere_Buy:Hide()
-		AuctionHere_Sell:Hide()
-		AuctionHere_Prices:Hide()
+		for a, b in pairs(containers) do
+			_G[b]:Hide()
+			_G[b .. "Tab"]:UnlockHighlight()
+		end
+		
 		self:LockHighlight()
 		AuctionHere_Lists:Show()
 	end)
 	
 	-- AuctionHere_PricesTab
 	local pricesTab = CreateFrame("Button", "AuctionHere_PricesTab", container, "AuctionClassButtonTemplate")
-	pricesTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 306, -413)
-	pricesTab:SetSize(42, 20)
+	pricesTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 339, -413)
+	pricesTab:SetSize(53, 20)
 	pricesTab:SetText("Prices")
 	pricesTab:SetScript("OnClick", function(self)
-		AuctionHere_BuyTab:UnlockHighlight()
-		AuctionHere_SellTab:UnlockHighlight()
-		AuctionHere_ListsTab:UnlockHighlight()
-		AuctionHere_Buy:Hide()
-		AuctionHere_Sell:Hide()
-		AuctionHere_Lists:Hide()
+		for a, b in pairs(containers) do
+			_G[b]:Hide()
+			_G[b .. "Tab"]:UnlockHighlight()
+		end
+		
 		self:LockHighlight()
 		AuctionHere_Prices:Show()
+	end)
+	
+	-- AuctionHere_SettingsTab
+	local settingsTab = CreateFrame("Button", "AuctionHere_SettingsTab", container, "AuctionClassButtonTemplate")
+	settingsTab:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 392, -413)
+	settingsTab:SetSize(53, 20)
+	settingsTab:SetText("Settings")
+	settingsTab:SetScript("OnClick", function(self)
+		for a, b in pairs(containers) do
+			_G[b]:Hide()
+			_G[b .. "Tab"]:UnlockHighlight()
+		end
+		
+		self:LockHighlight()
+		AuctionHere_Settings:Show()
 	end)
 	
 	-------------------------------------------------------------------------------
@@ -787,29 +917,45 @@ local function Setup()
 	end)
 	
 	buyFiltersBackground:SetScript("OnMouseWheel", function(_, delta)
-		AuctionHere_BuyFiltersScroll:SetVerticalScroll(math_min(math_max(AuctionHere_BuyFiltersScroll:GetVerticalScroll() - delta * 10, 0), AuctionHere_BuyFiltersScroll:GetVerticalScrollRange()))
+		AuctionHere_BuyFiltersScroll:SetVerticalScroll(math_min(math_max(AuctionHere_BuyFiltersScroll:GetVerticalScroll() - delta * 10.311, 0), AuctionHere_BuyFiltersScroll:GetVerticalScrollRange()))
 	end)
 	
 	-- AuctionHere_BuyFiltersScroll
 	local buyFiltersScroll = CreateFrame("ScrollFrame", "AuctionHere_BuyFiltersScroll", buy)
-	buyFiltersScroll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 25, -106)
-	buyFiltersScroll:SetSize(150, 261)
+	buyFiltersScroll:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 30, -111)
+	buyFiltersScroll:SetSize(140, 256)
 	
 	-- AuctionHere_BuyFilters
 	local buyFilters = CreateFrame("EditBox", "AuctionHere_BuyFilters", buy)
-	buyFilters:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 25, -106)
-	buyFilters:SetSize(150, 261)
+	buyFilters:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 30, -111)
+	buyFilters:SetSize(140, 256)
 	buyFilters:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 10)
 	buyFilters:SetShadowOffset(1, -1)
+	buyFilters:SetTextInsets(0, 1, 0, 0)
 	buyFilters:SetTextColor(0.975, 0.975, 0.975)
-	buyFilters:SetTextInsets(5, 5, 4, 0)
 	buyFilters:SetMultiLine(true)
 	buyFilters:SetAutoFocus(false)
 	buyFiltersScroll:SetScrollChild(buyFilters)
 	
+	-- AuctionHere_BuyUp
+	local buyUp = CreateFrame("Button", "AuctionHere_BuyUp", buy, "UIPanelScrollUpButtonTemplate")
+	buyUp:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 26, -379)
+	buyUp:SetSize(22, 20)
+	buyUp:SetScript("OnClick", function()
+		AuctionHere_BuyFiltersScroll:SetVerticalScroll(math_min(math_max(AuctionHere_BuyFiltersScroll:GetVerticalScroll() - 10.311, 0), AuctionHere_BuyFiltersScroll:GetVerticalScrollRange()))
+	end)
+	
+	-- AuctionHere_BuyDown
+	local buyDown = CreateFrame("Button", "AuctionHere_BuyDown", buy, "UIPanelScrollDownButtonTemplate")
+	buyDown:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 153, -379)
+	buyDown:SetSize(22, 20)
+	buyDown:SetScript("OnClick", function()
+		AuctionHere_BuyFiltersScroll:SetVerticalScroll(math_min(math_max(AuctionHere_BuyFiltersScroll:GetVerticalScroll() + 10.311, 0), AuctionHere_BuyFiltersScroll:GetVerticalScrollRange()))
+	end)
+	
 	-- AuctionHere_BuySearch
 	local buySearch = CreateFrame("Button", "AuctionHere_BuySearch", buy, "UIPanelButtonTemplate")
-	buySearch:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 58, -377)
+	buySearch:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 60, -377)
 	buySearch:SetSize(80, 22)
 	buySearch:SetText("Search")
 	buySearch:SetScript("OnClick", function()
@@ -817,24 +963,15 @@ local function Setup()
 		
 		local results = {}
 		local AuctionHere_data = AuctionHere_data
-		local snapshot = AuctionHere_data.snapshot or {}
+		local snapshot = AuctionHere_data.snapshot
 		
 		for a, b in pairs(snapshot) do
 			results[a] = a
 		end
 		
-		local indexA
-		local indexB
-		local prices = AuctionHere_data.prices["14 day median"]
-		
-		table_sort(results, function(a, b)
-			indexA = snapshot[a]
-			indexB = snapshot[b]
-			
-			return ((indexA[3] / indexA[1]) / (prices[indexA[6]][indexA[7]] or 1)) < ((indexB[3] / indexB[1]) / (prices[indexB[6]][indexB[7]] or 1))
-		end)
-		
 		addonTable.snapshot = results
+		Sort(7, false, "14 day median")
+		
 		AuctionHere_BuySlider:SetMinMaxValues(0, math_max(0, #results - 18))
 		AuctionHere_BuySlider:SetValue(1)
 		AuctionHere_BuySlider:SetValue(0)
@@ -845,44 +982,75 @@ local function Setup()
 	buyNameSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 184, -82)
 	buyNameSort:SetSize(334, 19)
 	buyNameSort:SetText("Name")
+	AuctionHere_BuyNameSortArrow:Hide()
+	buyNameSort:SetScript("OnClick", function() end)
 	
 	-- AuctionHere_BuyCountSort
 	local buyCountSort = CreateFrame("Button", "AuctionHere_BuyCountSort", buy, "AuctionSortButtonTemplate")
 	buyCountSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 516, -82)
 	buyCountSort:SetSize(31, 19)
 	buyCountSort:SetText("#")
+	AuctionHere_BuyCountSortArrow:Hide()
+	buyCountSort:SetScript("OnClick", function() end)
 	
 	-- AuctionHere_BuyDurationSort
 	local buyDurationSort = CreateFrame("Button", "AuctionHere_BuyDurationSort", buy, "AuctionSortButtonTemplate")
 	buyDurationSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 545, -82)
 	buyDurationSort:SetSize(62, 19)
 	buyDurationSort:SetText("Duration")
+	AuctionHere_BuyDurationSortArrow:Hide()
+	buyDurationSort:SetScript("OnClick", function() end)
 	
 	-- AuctionHere_BuyBidSort
 	local buyBidSort = CreateFrame("Button", "AuctionHere_BuyBidSort", buy, "AuctionSortButtonTemplate")
 	buyBidSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 605, -82)
 	buyBidSort:SetSize(87, 19)
 	buyBidSort:SetText("Bid")
+	AuctionHere_BuyBidSortArrow:Hide()
+	buyBidSort:SetScript("OnClick", function() end)
 	
 	-- AuctionHere_BuyBuyoutSort
 	local buyBuyoutSort = CreateFrame("Button", "AuctionHere_BuyBuyoutSort", buy, "AuctionSortButtonTemplate")
 	buyBuyoutSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 690, -82)
 	buyBuyoutSort:SetSize(87, 19)
 	buyBuyoutSort:SetText("Buyout")
+	AuctionHere_BuyBuyoutSortArrow:Hide()
+	buyBuyoutSort:SetScript("OnClick", function() end)
 	
 	-- AuctionHere_BuyPercentSort
 	local buyPercentSort = CreateFrame("Button", "AuctionHere_BuyPercentSort", buy, "AuctionSortButtonTemplate")
 	buyPercentSort:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 775, -82)
 	buyPercentSort:SetSize(31, 19)
 	buyPercentSort:SetText("%")
+	AuctionHere_BuyPercentSortArrow:Hide()
+	buyPercentSort:SetScript("OnClick", function() end)
+	
+	local selected
 	
 	for a = 1, 18 do
 		-- AuctionHere_BuyN
 		local buyN = CreateFrame("Button", "AuctionHere_Buy" .. a, buy)
 		buyN:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 188, -85 - 17 * a)
 		buyN:SetSize(634, 19)
+		buyN:SetScript("OnLeave", function(self)
+			GameTooltip:Hide()
+		end)
+		
 		buyN:SetScript("OnMouseWheel", function(_, delta)
 			AuctionHere_BuySlider:SetValue(AuctionHere_BuySlider:GetValue() - delta * 9)
+		end)
+		
+		buyN:SetScript("OnClick", function(self)
+			if selected then
+				local range = selected - AuctionHere_BuySlider:GetValue()
+				
+				if (range > 0) and (range < 19) then
+					_G["AuctionHere_Buy" .. range]:UnlockHighlight()
+				end
+			end
+			
+			selected = a + AuctionHere_BuySlider:GetValue()
+			self:LockHighlight()
 		end)
 		
 		-- AuctionHere_BuyNTexture
@@ -892,13 +1060,29 @@ local function Setup()
 		buyNTexture:SetTexture("Interface\\AuctionFrame\\UI-AuctionItemNameFrame")
 		buyNTexture:SetTexCoord(0.078125, 0.75, 0, 1)
 		
-		-- AuctionHere_BuyNIcon
+		-- AuctionHere_BuyNHighlight
+		local buyNHighlight = buyN:CreateTexture("AuctionHere_Buy" .. a .. "Highlight", "BACKGROUND")
+		buyNHighlight:SetPoint("TOPLEFT", buyN, "TOPLEFT", 0, 0)
+		buyNHighlight:SetSize(634, 19)
+		buyNHighlight:SetTexture("Interface\\HelpFrame\\HelpFrameButton-Highlight")
+		buyNHighlight:SetTexCoord(0, 1, 0, 0.578125)
+		buyNHighlight:SetAlpha(0.75)
+		buyN:SetHighlightTexture(buyNHighlight)
 		
 		-- AuctionHere_BuyNName
 		local buyNName = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Name")
 		buyNName:SetPoint("LEFT", buyN, "LEFT", 4, 0)
+		buyNName:SetHeight(19)
 		buyNName:SetFont("Interface\\Addons\\AuctionHere\\Fonts\\Inconsolata-Regular.ttf", 12)
 		buyNName:SetShadowOffset(1, -1)
+		buyN:SetScript("OnEnter", function(self)
+			local text = buyNName:GetText()
+			
+			if text ~= "-" then
+				GameTooltip:SetOwner(buyN, "ANCHOR_TOPLEFT", 0, -2)
+				GameTooltip:SetHyperlink(text)
+			end
+		end)
 		
 		-- AuctionHere_BuyNCount
 		local buyNNCount = buyN:CreateFontString("AuctionHere_Buy" .. a .. "Count")
@@ -934,35 +1118,59 @@ local function Setup()
 	-- AuctionHere_BuySlider
 	local buySlider = CreateFrame("Slider", "AuctionHere_BuySlider", buy, "UIPanelScrollBarTemplate")
 	buySlider:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 804, -120)
-	buySlider:SetSize(18, 273)
+	buySlider:SetSize(18, 272)
 	buySlider:SetValueStep(1)
 	buySlider:SetObeyStepOnDrag(true)
 	buySlider:SetFrameStrata("HIGH")
 	buySlider:SetMinMaxValues(0, 0)
-	addonTable.snapshot = {}
-	local results
 	buySlider:SetScript("OnValueChanged", function(_, value)
-		results = addonTable.snapshot
+		local results = addonTable.snapshot
 		local position = math_min(#results, 18)
 		local AuctionHere_data = AuctionHere_data
 		local prices = AuctionHere_data.prices["14 day median"]
 		local snapshot = AuctionHere_data.snapshot
 		
+		local index
+		local auction
+		local ID
+		local _, link
+		local count
+		local duration
+		local bid
+		local buyout
+		
+		local bidCopper
+		local bidSilver
+		local bidGold
+		local buyoutCopper
+		local buyoutSilver
+		local buyoutGold
+		local percent
+		
+		local name
+		local buyN
+		
 		for a = 1, position do
-			local index = a + value
-			local auction = snapshot[results[index]]
-			local ID = auction[6]
-			local _, link = GetItemInfo(ID)
-			local count = auction[1]
-			local bid = math_max(auction[2], math_ceil(auction[4] * 1.05))
-			local bidCopper = bid % 100
-			local bidSilver = math_floor(bid / 100) % 100
-			local bidGold = math_floor(bid / 10000)
-			local buyout = auction[3]
-			local buyoutCopper = buyout % 100
-			local buyoutSilver = math_floor(buyout / 100) % 100
-			local buyoutGold = math_floor(buyout / 10000)
-			local percent = math_ceil(((buyout / count) / (prices[ID][auction[7]] or 1)) * 100)
+			index = a + value
+			auction = snapshot[results[index]]
+			ID = auction[6]
+			_, link = GetItemInfo(ID)
+			count = auction[1]
+			duration = auction[8]
+			bid = math_max(auction[2], math_ceil(auction[4] * 1.05))
+			buyout = auction[3]
+			
+			if bid == 0 then
+				bid = buyout
+			end
+			
+			bidCopper = bid % 100
+			bidSilver = math_floor(bid / 100) % 100
+			bidGold = math_floor(bid / 10000)
+			buyoutCopper = buyout % 100
+			buyoutSilver = math_floor(buyout / 100) % 100
+			buyoutGold = math_floor(buyout / 10000)
+			percent = math_ceil(((buyout / count) / (prices[ID][auction[7]] or 1)) * 100)
 			
 			if bidGold == 0 then
 				bidGold = ""
@@ -1004,11 +1212,9 @@ local function Setup()
 				end
 			end
 			
-			if percent > 999 then
-				percent = 999
-			end
-			
-			if percent < 25 then
+			if percent == 0 then
+				percent = "-"
+			elseif percent < 25 then
 				percent = "|cffff8000" .. percent .. "|r"
 			elseif percent < 50 then
 				percent = "|cffa335ee" .. percent .. "|r"
@@ -1025,22 +1231,36 @@ local function Setup()
 			elseif percent < 200 then
 				percent = "|cffff5050" .. percent .. "|r"
 			else
+				if percent > 999 then
+					percent = 999
+				end
+				
 				percent = "|cffff0000" .. percent .. "|r"
 			end
 			
-			local name = "AuctionHere_Buy" .. a
-			
-			_G[name .. "Name"]:SetText(link or "")
+			name = "AuctionHere_Buy" .. a
+			_G[name .. "Name"]:SetText(link or "-")
 			_G[name .. "Count"]:SetText(count)
-			_G[name .. "Duration"]:SetText("N/A")
+			_G[name .. "Duration"]:SetText(duration or "-")
 			_G[name .. "Bid"]:SetText("|cffffd100" .. bidGold .. " |cffe6e6e6" .. bidSilver .. " |cffc8602c" .. bidCopper .. "|r")
 			_G[name .. "Buyout"]:SetText("|cffffd100" .. buyoutGold .. " |cffe6e6e6" .. buyoutSilver .. " |cffc8602c" .. buyoutCopper .. "|r")
 			_G[name .. "Percent"]:SetText(percent)
-			_G[name]:Show()
+			
+			buyN = _G[name]
+			buyN:UnlockHighlight()
+			buyN:Show()
 		end
 		
 		for a = position + 1, 18 do
 			_G["AuctionHere_Buy" .. a]:Hide()
+		end
+		
+		if selected then
+			local range = selected - value
+			
+			if (range > 0) and (range < 19) then
+				_G["AuctionHere_Buy" .. range]:LockHighlight()
+			end
 		end
 	end)
 	
@@ -1081,17 +1301,21 @@ local function Setup()
 	prices:Hide()
 	
 	-------------------------------------------------------------------------------
+	-- AuctionHere Settings
+	-------------------------------------------------------------------------------
+	
+	-- AuctionHere_Settings
+	local settings = CreateFrame("Frame", "AuctionHere_Settings", container)
+	settings:Hide()
+	
+	-------------------------------------------------------------------------------
 	-- Testing
 	-------------------------------------------------------------------------------
 	
-	local notice = container:CreateFontString("AuctionHere_Notice")
-	notice:SetPoint("TOP", AuctionFrame, "TOP", 0, -42)
+	local notice = container:CreateFontString("AuctionHere_TestingNotice")
+	notice:SetPoint("TOPLEFT", AuctionFrame, "TOPLEFT", 547, -43)
 	notice:SetFont("Fonts\\FRIZQT__.TTF", 10)
 	notice:SetShadowOffset(1, -1)
-	
-	local UpdateAddOnMemoryUsage = UpdateAddOnMemoryUsage
-	local GetFramerate = GetFramerate
-	local GetAddOnMemoryUsage = GetAddOnMemoryUsage
 	
 	C_Timer_NewTicker(0.1, function()
 		UpdateAddOnMemoryUsage()

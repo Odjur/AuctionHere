@@ -8,8 +8,17 @@ eventFrame:SetScript("OnEvent", function(_, _, addon)
 		
 		if not AuctionHere_data then
 			AuctionHere_data = {
-				state = {},
+				state = {
+					getAll = nil
+				},
+				
+				prices = {
+					["14 day median"] = nil
+				},
+				
 				settings = {
+					iterations = 1000,
+					attempts = 1000,
 					prices = {
 						-- update, range, excluded, included, stat, name
 						{true, 14, {}, {}, 1, "14 day median"}
@@ -17,7 +26,6 @@ eventFrame:SetScript("OnEvent", function(_, _, addon)
 				},
 				
 				scans = {},
-				prices = {},
 				snapshot = {}
 			}
 		end
