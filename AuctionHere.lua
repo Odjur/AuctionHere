@@ -9,7 +9,8 @@ eventFrame:SetScript("OnEvent", function(_, _, addon)
 		if not AuctionHere_data then
 			AuctionHere_data = {
 				state = {
-					getAll = nil
+					scan = nil,
+					snapshot = nil
 				},
 				
 				prices = {
@@ -17,8 +18,6 @@ eventFrame:SetScript("OnEvent", function(_, _, addon)
 				},
 				
 				settings = {
-					iterations = 1000,
-					attempts = 1000,
 					prices = {
 						-- update, range, excluded, included, stat, name
 						{true, 14, {}, {}, 1, "14 day median"}
@@ -32,19 +31,12 @@ eventFrame:SetScript("OnEvent", function(_, _, addon)
 		
 		local collectgarbage = collectgarbage
 		
-		local Setup = addonTable.Setup
-		
 		collectgarbage()
 		
 		eventFrame:SetScript("OnEvent", function()
-			if Setup then
-				Setup()
-				
-				Setup = nil
-			end
+			addonTable.Setup()
 			
-			BrowseNextPageButton:Show()
-			BrowsePrevPageButton:Show()
+			eventFrame:UnregisterEvent("AUCTION_HOUSE_SHOW")
 		end)
 		
 		eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
